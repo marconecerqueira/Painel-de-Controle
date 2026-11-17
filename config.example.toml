@@ -1,0 +1,88 @@
+# Copie para config.toml e ajuste os IPs e endereços.
+
+[server]
+# Escuta só localmente; o acesso remoto é via `tailscale serve` (ver docs/instalacao-pi.md).
+host = "127.0.0.1"
+port = 8080
+db_path = "minerador.db"
+retention_days = 30  # leituras brutas mais antigas são apagadas
+
+[intervals]          # segundos
+local = 15           # consulta direta às máquinas (LuxOS / AxeOS)
+pools = 60           # consulta às APIs das pools
+
+# ---------------------------------------------------------------- máquinas
+[[miners]]
+id = "s19jxp"
+name = "Antminer S19j XP"
+type = "luxos"               # API TCP 4028
+host = "192.168.1.50"
+port = 4028
+pool = "defisurfers"         # id de uma entrada em [pools.*]
+# worker = "s19"             # opcional: se omitido, é deduzido do usuário stratum "endereco.worker"
+expected_ths = 140           # opcional: usado no alerta de hashrate baixo
+temp_max_c = 80
+
+[[miners]]
+id = "bitaxe"
+name = "Bitaxe"
+type = "axeos"               # API HTTP
+host = "192.168.1.51"
+pool = "defisurfers"
+temp_max_c = 70
+vr_temp_max_c = 90
+
+[[miners]]
+id = "nerdminer"
+name = "NerdMiner"
+type = "pool_only"           # sem API local: status vem só da pool
+pool = "parasite"
+worker = "nerdminer"         # nome do worker usado no stratum (endereco.<worker>)
+
+# ---------------------------------------------------------------- pools
+[pools.defisurfers]
+type = "defisurfers"
+address = "bc1q_SEU_ENDERECO"
+base_url = "https://pool.defisurfers.xyz"
+
+[pools.parasite]
+type = "parasite"
+address = "bc1q_SEU_ENDERECO"
+base_url = "https://parasite.space"
+
+# Aluguel de hashrate com financeiro (custo × valor esperado):
+# [[miners]]
+# id = "aluguel-solo"
+# name = "Aluguel solo BCH"
+# type = "rental"
+# pool = "hashcommander"
+# worker = "MEU_WORKER"
+# cost_btc = 0.00118                    # quanto pagou
+# rental_hours = 19                     # duração contratada
+# rental_start = "2026-11-16 23:39"     # opcional (hora local); sem ele, o painel detecta o início
+
+# Pool híbrida de Bitcoin Cash (PPLNS + solo). Aluguéis de hash: type = "rental" + worker.
+# [pools.hashcommander]
+# type = "hashcommander"
+# address = "qp_SEU_ENDERECO_BCH"      # com ou sem "bitcoincash:"
+# base_url = "https://hashcommander-pool.duckdns.org"
+
+# ---------------------------------------------------------------- blocos (mempool.space)
+# Seção "Blocos encontrados" do painel. Opcional.
+# [blocks]
+# my_pools = ["parasite"]               # slugs extras para o filtro "Minhas pools"
+# base_url = "https://mempool.space"    # ou o seu próprio mempool (Umbrel/Start9)
+
+# ---------------------------------------------------------------- alertas
+# Passo a passo: docs/alertas-telegram.md. Vazio = alertas só no painel.
+[telegram]
+bot_token = ""
+chat_id = ""
+
+# [alerts]                 # tempos de espera (minutos) — valores padrão:
+# offline_min = 3
+# hashrate_min = 10
+# temp_min = 1
+# pool_min = 10
+# rental_min = 3
+# low_hashrate_pct = 70

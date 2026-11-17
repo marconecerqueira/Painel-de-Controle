@@ -1,0 +1,14 @@
+[Unit]
+Description=Painel de Controle - painel remoto de mineradores
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/minerador
+ExecStart=/home/pi/minerador/.venv/bin/python -m minerador --config /home/pi/minerador/config.toml
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,68 @@
+# Configuração de demonstração: aponta para tools/simulador.py.
+[server]
+host = "127.0.0.1"
+port = 8080
+db_path = "demo.db"
+
+[intervals]
+local = 5
+pools = 10
+
+[[miners]]
+id = "s19jxp"
+name = "Antminer S19j XP"
+type = "luxos"
+host = "127.0.0.1"
+port = 14028
+pool = "defisurfers"
+expected_ths = 140
+temp_max_c = 80
+
+[[miners]]
+id = "bitaxe"
+name = "Bitaxe"
+type = "axeos"
+host = "127.0.0.1"
+port = 18081
+pool = "defisurfers"
+temp_max_c = 65
+vr_temp_max_c = 90
+
+[[miners]]
+id = "nerdminer"
+name = "NerdMiner"
+type = "pool_only"
+pool = "parasite"
+worker = "nerdminer"
+
+[[miners]]
+id = "hc-solo"
+name = "Aluguel solo BCH"
+type = "rental"
+pool = "hashcommander"
+worker = "aluguel-solo"
+
+[[miners]]
+id = "hc-pplns"
+name = "Aluguel PPLNS BCH"
+type = "rental"
+pool = "hashcommander"
+worker = "aluguel-pplns"
+
+[pools.hashcommander]
+type = "hashcommander"
+address = "qdemo00000000000000000000000000000000000000"
+base_url = "http://127.0.0.1:18081/hc"
+
+[pools.defisurfers]
+type = "defisurfers"
+address = "bc1qdemo0000000000000000000000000000000000"
+base_url = "http://127.0.0.1:18081/defi"
+
+[pools.parasite]
+type = "parasite"
+address = "bc1qdemo0000000000000000000000000000000000"
+base_url = "http://127.0.0.1:18081/parasite"
+
+[blocks]
+base_url = "http://127.0.0.1:18081/mempool"

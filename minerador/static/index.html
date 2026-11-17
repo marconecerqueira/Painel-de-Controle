@@ -1,0 +1,788 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Painel de Controle</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Painel">
+<meta name="theme-color" content="#e7ebe8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1110" media="(prefers-color-scheme: dark)">
+<link rel="preload" href="/static/fonts/BarlowSemiCondensed-600.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="manifest" href="/static/manifest.webmanifest">
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="icon" href="/static/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png" sizes="180x180">
+<style>
+  @font-face { font-family: "Barlow"; font-weight: 400; font-display: swap; src: url(/static/fonts/Barlow-400.woff2) format("woff2"); }
+  @font-face { font-family: "Barlow"; font-weight: 500; font-display: swap; src: url(/static/fonts/Barlow-500.woff2) format("woff2"); }
+  @font-face { font-family: "Barlow"; font-weight: 600; font-display: swap; src: url(/static/fonts/Barlow-600.woff2) format("woff2"); }
+  @font-face { font-family: "Barlow Semi Condensed"; font-weight: 500; font-display: swap; src: url(/static/fonts/BarlowSemiCondensed-500.woff2) format("woff2"); }
+  @font-face { font-family: "Barlow Semi Condensed"; font-weight: 600; font-display: swap; src: url(/static/fonts/BarlowSemiCondensed-600.woff2) format("woff2"); }
+  @font-face { font-family: "Barlow Semi Condensed"; font-weight: 700; font-display: swap; src: url(/static/fonts/BarlowSemiCondensed-700.woff2) format("woff2"); }
+
+  /* Aço galvanizado em volta, placa de circuito no painel do rack. */
+  :root {
+    --page: #e7ebe8; --surface: #f6f8f6; --ink: #13201a; --ink-2: #44534c; --muted: #6a7972;
+    --hair: #d0d8d3; --track: #e1e7e3; --ring: rgba(19,32,26,.12);
+    --pcb: #0e3a2c; --pcb-edge: #1d5442; --silk: #e8f1ec; --silk-2: #a9c3b6; --slot: rgba(232,241,236,.06);
+    --good: #0ca30c; --good-text: #006300; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+    --led-good: #3ee07a; --led-warn: #ffc23d; --led-bad: #ff5a55;
+    --accent: #2a78d6;
+    --text: "Barlow", -apple-system, "Segoe UI", system-ui, sans-serif;
+    --cond: "Barlow Semi Condensed", "Barlow", -apple-system, system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0b1110; --surface: #121a17; --ink: #e4ebe7; --ink-2: #a6b4ad; --muted: #7a8a82;
+      --hair: #22302a; --track: #1d2924; --ring: rgba(228,235,231,.10);
+      --pcb: #0a2c21; --pcb-edge: #1a4536;
+      --good-text: #0ca30c; --accent: #3987e5;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.45 var(--text); -webkit-font-smoothing: antialiased; }
+  /* Fundo: ₿ em contorno, candles e linha de preço sobre papel milimetrado — uma cor só, bem apagada. */
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: var(--ink); opacity: .07;
+    -webkit-mask: url(/static/bg.svg) center / cover no-repeat; mask: url(/static/bg.svg) center / cover no-repeat;
+  }
+  @media (prefers-color-scheme: dark) { body::before { background: var(--silk-2); opacity: .06; } }
+  main { position: relative; z-index: 1; max-width: 1160px; margin: 0 auto; padding: 20px 16px 56px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .muted { color: var(--muted); }
+  .num, .v, td.num { font-variant-numeric: tabular-nums; }
+
+  /* ---------------- painel do rack (topo) */
+  .rack { background: var(--pcb); color: var(--silk); border-radius: 16px; padding: 18px 18px 16px; box-shadow: inset 0 0 0 1px var(--pcb-edge); }
+  .rack-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+  h1 { font: 700 26px/1.1 var(--cond); margin: 0; letter-spacing: .01em; }
+  .live { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--silk-2); margin-top: 4px; }
+  .live i { width: 8px; height: 8px; border-radius: 50%; background: var(--led-good); box-shadow: 0 0 6px var(--led-good); }
+  .live.stale { color: #ffb3b0; }
+  .live.stale i { background: var(--led-bad); box-shadow: 0 0 6px var(--led-bad); }
+  .live i.blink { animation: blink .6s ease-out; }
+  @keyframes blink { from { opacity: .25; } to { opacity: 1; } }
+  .totals { display: flex; gap: 28px; flex-wrap: wrap; text-align: right; }
+  .totals div { min-width: 0; }
+  .totals .k { font-size: 12.5px; color: var(--silk-2); }
+  .totals .v { font: 600 30px/1.05 var(--cond); }
+  .totals .v small { font: 500 15px var(--cond); color: var(--silk-2); margin-left: 3px; }
+
+  .bays { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; margin-top: 16px; }
+  .bay { display: block; color: inherit; background: var(--slot); border-radius: 10px; padding: 10px 12px 11px; box-shadow: inset 0 0 0 1px rgba(232,241,236,.12); min-width: 0; }
+  .bay:hover { text-decoration: none; box-shadow: inset 0 0 0 1px rgba(232,241,236,.35); }
+  .bay-head { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; min-width: 0; }
+  .bay-head span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .led { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; background: transparent; box-shadow: inset 0 0 0 1.5px var(--silk-2); }
+  .led.online { background: var(--led-good); box-shadow: 0 0 7px var(--led-good); }
+  .led.warning { background: var(--led-warn); box-shadow: 0 0 7px var(--led-warn); }
+  .led.offline { background: var(--led-bad); box-shadow: 0 0 7px var(--led-bad); }
+  .bay-hash { font: 600 26px/1.1 var(--cond); margin-top: 6px; }
+  .bay-hash small { font: 500 14px var(--cond); color: var(--silk-2); margin-left: 3px; }
+  .bay-state { font-size: 12.5px; color: var(--silk-2); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bay-bar { height: 3px; border-radius: 2px; background: rgba(232,241,236,.14); margin-top: 8px; overflow: hidden; }
+  .bay-bar span { display: block; height: 100%; background: var(--silk); }
+  .bay-bar span.low { background: var(--led-warn); }
+
+  /* ---------------- alertas ativos (logo abaixo do rack) */
+  .alert-banner { margin-top: 12px; border-radius: 10px; padding: 12px 14px 12px 16px; background: color-mix(in srgb, var(--critical) 10%, var(--surface)); box-shadow: inset 4px 0 0 var(--critical), inset 0 0 0 1px color-mix(in srgb, var(--critical) 35%, transparent); display: none; }
+  .alert-banner b { display: block; font: 600 16px var(--cond); margin-bottom: 4px; }
+  .alert-banner ul { margin: 0; padding: 0; list-style: none; font-size: 14px; }
+  .alert-banner li { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .alert-banner li + li { margin-top: 4px; }
+
+  /* ---------------- seções e cards */
+  h2 { font: 600 21px/1.2 var(--cond); margin: 36px 0 12px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  h2 .aside { font: 400 13.5px var(--text); color: var(--muted); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; align-items: start; }
+  .grid > * { min-width: 0; }
+  .card { background: var(--surface); border-radius: 12px; box-shadow: inset 0 0 0 1px var(--hair); padding: 16px; min-width: 0; scroll-margin-top: 16px; }
+  .card:target { box-shadow: inset 0 0 0 2px var(--accent); }
+  .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .card-title { font: 600 19px/1.2 var(--cond); }
+  .card-sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+  .tag { display: inline-block; font-size: 12px; font-weight: 500; padding: 1px 8px; border-radius: 999px; white-space: nowrap; background: var(--track); color: var(--ink-2); }
+  td .tag { margin-left: 6px; vertical-align: 1px; font-size: 11.5px; }
+  .tag.mine { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); }
+  .tag.coin { background: color-mix(in srgb, var(--s4) 24%, transparent); color: var(--ink); }
+  .tag.paid { background: color-mix(in srgb, var(--good) 16%, transparent); color: var(--good-text); }
+
+  .pill { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; padding: 2px 10px 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .pill svg { width: 12px; height: 12px; }
+  .pill.online  { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good-text); }
+  .pill.warning { background: var(--warning); color: #13201a; }
+  .pill.offline { background: var(--critical); color: #fff; }
+  .pill.unknown, .pill.idle { background: var(--track); color: var(--ink-2); }
+
+  .reasons { margin: 12px 0 0; padding: 8px 10px; border-radius: 8px; background: color-mix(in srgb, var(--warning) 16%, transparent); font-size: 13.5px; list-style: none; }
+  .reasons.offline { background: color-mix(in srgb, var(--critical) 12%, transparent); }
+  .reasons li + li { margin-top: 2px; }
+
+  .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 12px; margin-top: 14px; }
+  .metric .k { color: var(--muted); font-size: 12.5px; line-height: 1.25; }
+  .metric .v { font: 600 20px/1.2 var(--cond); margin-top: 2px; }
+  .metric .v small { font: 500 13px var(--cond); color: var(--ink-2); }
+  .metric .sub { color: var(--muted); font: 400 12.5px/1.3 var(--text); margin-top: 1px; }
+  .meter { height: 5px; background: var(--track); border-radius: 999px; overflow: hidden; margin-top: 5px; }
+  .meter > span { display: block; height: 100%; border-radius: 999px; background: var(--good); }
+  .meter > span.warning { background: var(--warning); }
+  .meter > span.critical { background: var(--critical); }
+  .meter > span.progress { background: var(--accent); }
+
+  .facts { margin: 14px 0 0; padding-top: 10px; border-top: 1px solid var(--hair); display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 13.5px; }
+  .facts dt { color: var(--muted); }
+  .facts dd { margin: 0; text-align: right; color: var(--ink-2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stamp { color: var(--muted); font-size: 12.5px; margin-top: 10px; }
+
+  .rent { margin-top: 14px; padding: 12px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 5%, var(--surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, var(--hair)); }
+  .rent-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .rent-head b { font: 600 16px var(--cond); }
+  .rent-head span { font-size: 13px; color: var(--ink-2); }
+  .rent .metrics { margin-top: 10px; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; font-variant-numeric: tabular-nums; }
+  th { text-align: left; color: var(--muted); font-weight: 500; font-size: 12.5px; padding: 4px 6px; border-bottom: 1px solid var(--hair); }
+  td { padding: 7px 6px; border-bottom: 1px solid var(--hair); font-size: 14px; vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  td.num, th.num { text-align: right; }
+  td small { color: var(--muted); }
+  .who { display: block; color: var(--muted); font-size: 12.5px; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; }
+  .dot.on { background: var(--good); } .dot.off { background: var(--critical); }
+  .err { color: var(--critical); font-size: 13.5px; margin-top: 8px; }
+  .empty { color: var(--muted); padding: 40px 0; text-align: center; }
+
+  .close { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 20px; line-height: 1; width: 30px; height: 30px; margin: -5px -7px -5px 0; border-radius: 8px; cursor: pointer; flex-shrink: 0; }
+  .close:hover { background: var(--track); color: var(--ink); }
+  .head-actions { display: flex; align-items: center; gap: 6px; }
+  .linkbtn { border: 0; background: none; padding: 0; font: inherit; color: var(--accent); cursor: pointer; }
+  .linkbtn:hover { text-decoration: underline; }
+  .hidden-note { margin-top: 10px; font-size: 13.5px; color: var(--muted); }
+
+  /* ---------------- gráfico (paleta categórica validada — não mexer) */
+  :root { --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --total: #44534c; --axis: #b8c3bd; }
+  @media (prefers-color-scheme: dark) { :root { --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --total: #a6b4ad; --axis: #33423b; } }
+  .chart-card { margin-top: 12px; padding-bottom: 12px; }
+  .chart-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .seg { display: inline-flex; background: var(--track); border-radius: 9px; padding: 3px; }
+  .seg button { border: 0; background: transparent; color: var(--ink-2); font: 500 14px var(--cond); padding: 4px 12px; border-radius: 7px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--hair); font-weight: 600; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 12px 0 4px; font-size: 13.5px; color: var(--ink-2); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+  .chart-wrap { position: relative; outline: none; }
+  .chart-wrap:focus-visible { box-shadow: 0 0 0 2px var(--accent); border-radius: 6px; }
+  .chart-wrap svg { display: block; width: 100%; overflow: visible; font-family: var(--text); }
+  .chart-wrap .grid-line { stroke: var(--hair); stroke-width: 1; }
+  .chart-wrap .base-line { stroke: var(--axis); stroke-width: 1; }
+  .chart-wrap .tick { fill: var(--muted); font-size: 12px; }
+  .chart-wrap .dlabel { fill: var(--ink-2); font-size: 12.5px; font-weight: 600; }
+  .chart-wrap .cross { stroke: var(--muted); stroke-width: 1; }
+  .tip { position: absolute; top: 0; pointer-events: none; background: var(--surface); box-shadow: 0 0 0 1px var(--hair), 0 8px 24px rgba(10,20,16,.18); border-radius: 9px; padding: 8px 10px; font-size: 13px; min-width: 180px; display: none; z-index: 2; }
+  .tip .t { color: var(--muted); margin-bottom: 4px; }
+  .tip .r { display: flex; justify-content: space-between; gap: 14px; }
+  .tip .r span:first-child { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); }
+  .tip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .chart-note { color: var(--muted); font-size: 13px; margin-top: 6px; }
+  details.tbl { margin-top: 8px; font-size: 13.5px; }
+  details.tbl summary { cursor: pointer; color: var(--accent); }
+  details.tbl .scroll { max-height: 260px; overflow: auto; }
+
+  /* ---------------- blocos */
+  .blocks-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .blocks-top select { font: 500 14px var(--cond); color: var(--ink); background: var(--surface); border: 0; box-shadow: inset 0 0 0 1px var(--hair); border-radius: 9px; padding: 6px 10px; max-width: 100%; }
+  .blocks-top select.on { box-shadow: inset 0 0 0 2px var(--accent); }
+  .blocks-desc { margin-top: 10px; }
+  tr.mine td { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+  .blocks-table td { white-space: nowrap; }
+  .blocks-table td.pool { white-space: normal; }
+  .blocks-notes { margin-top: 8px; font-size: 13px; color: var(--ink-2); }
+
+  /* ---------------- histórico de alertas */
+  .alerts-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .events { list-style: none; margin: 10px 0 0; padding: 0; font-size: 14px; }
+  .events li { display: grid; grid-template-columns: 22px 1fr auto 30px; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--hair); }
+  .events li:last-child { border-bottom: 0; }
+  .events .d { color: var(--muted); font-size: 13px; white-space: nowrap; }
+  .events .x { color: var(--ink-2); font-size: 13px; }
+  .events .close { margin: -6px 0 0; }
+
+  @media (max-width: 560px) {
+    .hide-sm { display: none; }
+    .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .totals { text-align: left; gap: 20px; }
+    .bays { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .bay-hash { font-size: 22px; }
+    .bay-state, .bay-head span { white-space: normal; }
+  }
+  @media (prefers-reduced-motion: reduce) { .live i.blink { animation: none; } }
+</style>
+</head>
+<body>
+<main>
+  <section class="rack" aria-labelledby="titulo">
+    <div class="rack-top">
+      <div>
+        <h1 id="titulo">Painel de Controle</h1>
+        <div class="live" id="updated" aria-live="polite"><i id="live-led"></i><span>Conectando…</span></div>
+      </div>
+      <div class="totals" id="totals"></div>
+    </div>
+    <div class="bays" id="bays" aria-label="Máquinas no rack"></div>
+  </section>
+
+  <div class="alert-banner" id="alert-banner" role="alert"></div>
+
+  <section class="card chart-card" aria-labelledby="chart-title">
+    <div class="chart-top">
+      <div class="card-title" id="chart-title">Hashrate</div>
+      <div class="seg" role="group" aria-label="Período" id="ranges">
+        <button data-r="24h">24 h</button><button data-r="3d">3 dias</button><button data-r="7d">7 dias</button><button data-r="30d">30 dias</button>
+      </div>
+    </div>
+    <div class="legend" id="legend"></div>
+    <div class="chart-wrap" id="chart" tabindex="0" role="img" aria-label="Gráfico de hashrate"><div class="tip" id="tip"></div></div>
+    <div class="chart-note" id="chart-note"></div>
+    <details class="tbl"><summary>Ver como tabela</summary><div class="scroll" id="chart-table"></div></details>
+  </section>
+
+  <h2>Máquinas</h2>
+  <section class="grid" id="miners"><div class="empty">Carregando…</div></section>
+  <div class="hidden-note" id="miners-hidden"></div>
+
+  <h2>Pools</h2>
+  <section class="grid" id="pools"></section>
+
+  <h2>Blocos encontrados</h2>
+  <section class="card" aria-label="Blocos encontrados">
+    <div class="blocks-top">
+      <div class="seg" role="group" aria-label="Filtro de blocos" id="bviews">
+        <button data-v="rede">Rede</button><button data-v="minhas">Minhas pools</button><button data-v="solo">Solo e pequenas</button>
+      </div>
+      <select id="bpool" aria-label="Ver blocos de outra pool"><option value="">Outra pool…</option></select>
+    </div>
+    <div class="card-sub blocks-desc" id="bdesc"></div>
+    <div id="blocks-body" aria-live="polite"><div class="muted" style="margin-top:10px">Carregando…</div></div>
+  </section>
+
+  <h2>Alertas</h2>
+  <section class="card" id="alerts"></section>
+</main>
+
+<script>
+const REFRESH_MS = 10000;
+const STATUS = {
+  online:  { label: "Online",      icon: '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.5 6.5l2.2 2.2L9.5 3.5"/></svg>' },
+  warning: { label: "Atenção",     icon: '<svg viewBox="0 0 12 12" fill="currentColor"><path d="M6 1l5.5 10h-11z"/><rect x="5.3" y="4.4" width="1.4" height="3.4" fill="#fab219"/><rect x="5.3" y="8.6" width="1.4" height="1.3" fill="#fab219"/></svg>' },
+  offline: { label: "Offline",     icon: '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l6 6M9 3l-6 6"/></svg>' },
+  idle:    { label: "Sem aluguel", icon: '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 2.5v7M8 2.5v7"/></svg>' },
+  unknown: { label: "Aguardando",  icon: '<svg viewBox="0 0 12 12" fill="currentColor"><circle cx="3" cy="6" r="1.2"/><circle cx="6" cy="6" r="1.2"/><circle cx="9" cy="6" r="1.2"/></svg>' },
+};
+const TYPE_LABEL = { luxos: "LuxOS", axeos: "AxeOS", pool_only: "Só pela pool", rental: "Aluguel de hashrate" };
+let POOL_LABEL = {};                   // id da pool no config -> nome legível
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const nf = (v, d = 1) => v == null ? "—" : v.toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
+
+function hashrate(ths) {               // TH/s -> [valor, unidade]
+  if (ths == null) return ["—", ""];
+  const hs = ths * 1e12;
+  const units = [["EH/s", 1e18], ["PH/s", 1e15], ["TH/s", 1e12], ["GH/s", 1e9], ["MH/s", 1e6], ["kH/s", 1e3]];
+  for (const [u, f] of units) if (hs >= f) { const v = hs / f; return [nf(v, v >= 100 ? 0 : v >= 10 ? 1 : 2), u]; }
+  return [nf(hs, 0), "H/s"];
+}
+const hr = ths => { const [v, u] = hashrate(ths); return `${v} <small>${u}</small>`; };
+
+function compact(n) {                  // dificuldade: 4,29 G
+  if (n == null) return "—";
+  const s = [["E", 1e18], ["P", 1e15], ["T", 1e12], ["G", 1e9], ["M", 1e6], ["k", 1e3]];
+  for (const [u, f] of s) if (n >= f) return `${nf(n / f, 2)} ${u}`;
+  return nf(n, 0);
+}
+function duration(sec) {
+  if (sec == null) return "—";
+  const d = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600), m = Math.floor(sec % 3600 / 60);
+  return d ? `${d}d ${h}h` : h ? `${h}h ${m}min` : `${m}min`;
+}
+function ago(epoch) {
+  if (!epoch) return "nunca";
+  const s = Math.max(0, Date.now() / 1000 - epoch);
+  return s < 60 ? `há ${Math.round(s)}s` : s < 3600 ? `há ${Math.round(s / 60)}min` : `há ${duration(s)}`;
+}
+const sats = n => n == null ? "—" : `${n.toLocaleString("pt-BR")} sats`;
+
+function pill(status) {
+  const s = STATUS[status] || STATUS.unknown;
+  return `<span class="pill ${status}">${s.icon}${s.label}</span>`;
+}
+function metric(k, v) { return `<div class="metric"><div class="k">${k}</div><div class="v">${v}</div></div>`; }
+function tempMetric(label, t, limit) {
+  if (t == null) return metric(label, "—");
+  const lim = limit || 90, pct = Math.min(100, t / lim * 100);
+  const cls = t >= lim ? "critical" : t >= lim * 0.9 ? "warning" : "";
+  return `<div class="metric"><div class="k">${label}</div><div class="v">${nf(t, 0)} <small>°C</small></div>
+    <div class="meter" role="meter" aria-valuenow="${t}" aria-valuemax="${lim}" aria-label="${label} ${nf(t, 0)} de ${lim} graus"><span class="${cls}" style="width:${pct}%"></span></div></div>`;
+}
+
+const eur = v => v == null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function rentalBlock(r) {
+  const when = t => fmtTime(t, "", true);
+  let head = "";
+  if (r.state === "ativo") head = `Termina ${when(r.end)}, faltam ${duration(r.end - Date.now() / 1000)}`;
+  else if (r.state === "terminado") head = `Terminou ${when(r.end)}`;
+  else if (r.state === "novo") head = "novo aluguel";
+  const period = r.start ? `De ${when(r.start)} a ${when(r.end)}, ${nf(r.hours, r.hours % 1 ? 1 : 0)} h${r.start_source === "detectado" ? " (início detectado pelo painel)" : ""}` : "";
+  const ev = r.ev_eur != null
+    ? `${eur(r.ev_eur)}${r.ev_pct_cost != null ? `<div class="sub">${nf(r.ev_pct_cost, r.ev_pct_cost < 10 ? 1 : 0)}% do custo</div>` : ""}` : "—";
+  const price = r.price_sats_th_day != null
+    ? `${nf(r.price_sats_th_day, 0)} <small>sats/TH/dia</small>` : "—";
+  const ratio = r.price_ratio != null
+    ? `${nf(r.price_ratio, r.price_ratio < 10 ? 1 : 0)}×<div class="sub">mercado hoje: ${nf(r.btc_hashprice_sats, 0)} sats</div>` : "—";
+  return `<div class="rent" aria-label="Financeiro do aluguel">
+    <div class="rent-head"><b>Aluguel${r.mode === "solo" ? " solo" : r.mode ? " " + esc(r.mode) : ""}</b><span>${esc(head)}</span></div>
+    ${r.progress != null ? `<div class="meter" role="progressbar" aria-valuenow="${Math.round(r.progress * 100)}" aria-valuemin="0" aria-valuemax="100" aria-label="Andamento do aluguel"><span class="progress" style="width:${r.progress * 100}%"></span></div>` : ""}
+    ${period ? `<div class="card-sub" style="margin-top:6px">${esc(period)}</div>` : ""}
+    <div class="metrics">
+      ${metric("Custo", `${Math.round(r.cost_btc * 1e8).toLocaleString("pt-BR")} <small>sats</small><div class="sub">${r.cost_btc.toLocaleString("pt-BR", { maximumFractionDigits: 8 })} BTC${r.cost_eur != null ? ", " + eur(r.cost_eur) : ""}</div>`)}
+      ${metric("Valor esperado", ev)}
+      ${r.chance_pct != null ? metric("Chance de bloco", `${nf(r.chance_pct, 2)} <small>%</small><div class="sub">prêmio ≈ ${eur(r.block_value_eur)}</div>`) : metric("Hashrate médio", hr(r.avg_ths))}
+      ${metric("Preço pago", price)}
+      ${metric("Preço × mercado", ratio)}
+      ${r.chance_pct != null ? metric("Hashrate médio", hr(r.avg_ths)) : ""}
+    </div>
+    ${r.note ? `<div class="err">${esc(r.note)}</div>` : ""}
+  </div>`;
+}
+
+function minerCard(m) {
+  const L = m.local, P = m.pool_worker;
+  const reasons = m.reasons.length && !["online", "idle"].includes(m.status)
+    ? `<ul class="reasons ${m.status === "offline" ? "offline" : ""}">${m.reasons.map(r => `<li>${esc(r)}</li>`).join("")}</ul>` : "";
+  let body = "";
+  if (L && L.online) {
+    const eff = L.power_w && L.hashrate_ths ? L.power_w / L.hashrate_ths : null;
+    body = `<div class="metrics">
+      ${metric("Hashrate agora", hr(L.hashrate_ths))}
+      ${metric(m.type === "axeos" ? "Média 1h" : "Média", hr(L.hashrate_avg_ths))}
+      ${metric("Na pool", P ? hr(P.hashrate_ths) : "—")}
+      ${tempMetric(m.type === "axeos" ? "Temp. ASIC" : "Temp. máx.", L.temp_max_c, m.limits.temp_max_c || (m.type === "axeos" ? 70 : 80))}
+      ${m.type === "axeos" ? tempMetric("Temp. VR", L.temp_vr_c, m.limits.vr_temp_max_c || 90) : metric("Ventoinhas", L.fan_rpm.length ? `${Math.max(...L.fan_rpm).toLocaleString("pt-BR")} <small>rpm máx.</small>` : "—")}
+      ${metric("Potência", L.power_w != null ? `${nf(L.power_w, 0)} <small>W${L.power_measured === false ? " (est.)" : ""}</small>` : "—")}
+      ${metric("Eficiência", eff ? `${nf(eff, 1)} <small>J/TH</small>` : "—")}
+      ${metric("Shares", L.accepted != null ? `${L.accepted.toLocaleString("pt-BR")} <small>/ ${L.rejected ?? 0} rej.</small>` : "—")}
+      ${metric("Ligado há", duration(L.uptime_s))}
+    </div>
+    <dl class="facts">
+      <dt>Pool</dt><dd title="${esc(L.pool_url)}">${esc(L.pool_url || "—")}</dd>
+      <dt>Worker</dt><dd>${esc(m.worker || "—")}</dd>
+      <dt>Melhor dificuldade</dt><dd>${compact(L.best_diff ?? P?.best_diff)}</dd>
+      ${L.firmware ? `<dt>Firmware</dt><dd>${esc(L.firmware)}</dd>` : ""}
+    </dl>`;
+  } else if (m.type === "pool_only" || m.type === "rental") {
+    body = `<div class="metrics">
+      ${metric("Hashrate na pool", P ? hr(P.hashrate_ths) : "—")}
+      ${m.type === "rental" ? metric("Contratado", m.limits.expected_ths ? `${nf(m.limits.expected_ths, 1)} <small>TH/s</small>` : "—") : ""}
+      ${metric("Último share", P ? ago(P.last_seen) : "—")}
+      ${metric("Melhor dificuldade", compact(P?.best_diff))}
+    </div>
+    <dl class="facts"><dt>Worker</dt><dd>${esc(m.worker)}</dd><dt>Dados vindos da pool</dt><dd>${esc(POOL_LABEL[m.pool] || m.pool)}</dd></dl>
+    ${m.rental ? rentalBlock(m.rental) : ""}`;
+  }
+  const tags = [TYPE_LABEL[m.type], L?.model, m.coin === "BCH" ? "Bitcoin Cash" : "", P?.mode === "solo" ? "Solo" : P?.mode]
+    .filter(Boolean).map(t => `<span class="tag">${esc(t)}</span>`).join("");
+  return `<article class="card" id="m-${esc(m.id)}" aria-label="${esc(m.name)}">
+    <div class="card-head"><div><div class="card-title">${esc(m.name)}</div><div class="tags">${tags}</div></div>
+      <div class="head-actions">${pill(m.status)}${m.type === "rental" && !["online", "warning"].includes(m.status)
+        ? `<button class="close" data-hide="${esc(m.id)}" title="Fechar (aluguel encerrado)" aria-label="Fechar o card ${esc(m.name)}">×</button>` : ""}</div></div>
+    ${reasons}${body}
+    ${m.local_at ? `<div class="stamp">Leitura ${ago(m.local_at)}</div>` : ""}
+  </article>`;
+}
+
+let workerOwner = {};                 // "pool|worker" -> nome da máquina
+function poolCard(p) {
+  const name = POOL_LABEL[p.id] || p.id;
+  if (p.ok == null) return `<article class="card"><div class="card-title">${esc(name)}</div><div class="card-sub">aguardando…</div></article>`;
+  const rows = (p.workers || []).map(w => `<tr>
+      <td><span class="dot ${w.online ? "on" : "off"}" aria-hidden="true"></span>${esc(w.name)}${w.mode ? `<span class="tag">${esc(w.mode === "solo" ? "Solo" : w.mode)}</span>` : ""}<span class="who">${esc(workerOwner[p.id + "|" + w.name] || (w.online ? "online" : "offline"))}</span></td>
+      <td class="num">${hr(w.hashrate_ths)}</td>
+      <td class="num">${compact(w.best_diff)}</td>
+      <td class="num">${ago(w.last_seen)}</td></tr>`).join("");
+  const extra = p.type === "defisurfers" ? `
+      ${metric("Hashrate real (shares)", hr(p.hashrate_real_ths))}
+      ${metric("Sua fatia PPLNS", p.pplns_percent != null ? `${nf(p.pplns_percent, 2)} <small>%</small>` : "—")}
+      ${metric("Saldo / pago", `${sats(p.balance_sats)} <small>/ ${sats(p.paid_sats)}</small>`)}
+      ${metric("Hashrate da pool", hr(p.pool_hashrate_ths))}
+      ${metric("Blocos achados", p.blocks_found ?? "—")}`
+    : p.type === "hashcommander" ? `
+      ${metric("Sua fatia PPLNS", p.pplns_percent != null ? `${nf(p.pplns_percent, 2)} <small>%</small>` : "—")}
+      ${metric("Recebe se a pool achar bloco", p.payout_estimate != null ? `${nf(p.payout_estimate, 5)} <small>BCH</small>` : "—")}
+      ${metric("Hashrate da pool", hr(p.pool_hashrate_ths))}
+      ${metric("Seu hashrate solo", p.solo_hashrate_ths != null ? hr(p.solo_hashrate_ths) : "—")}
+      ${metric("Bloco solo, em média", soloOdds(p.solo_blocks_per_day))}
+      ${metric("Blocos achados", p.blocks_found ?? "—")}` : "";
+  return `<article class="card">
+    <div class="card-head"><div><div class="card-title"><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(name)}</a></div>
+      <div class="card-sub">Endereço ${esc(p.address)}</div></div>
+      ${pill(p.ok ? "online" : "offline")}</div>
+    ${p.error ? `<div class="err">${esc(p.error)}</div>` : ""}
+    <div class="metrics">${metric("Hashrate", hr(p.hashrate_ths))}${metric("Melhor dificuldade", compact(p.best_diff))}${extra}</div>
+    ${rows ? `<table><thead><tr><th>Worker</th><th class="num">Hashrate</th><th class="num">Melhor dif.</th><th class="num">Visto</th></tr></thead><tbody>${rows}</tbody></table>` : ""}
+    ${p.at ? `<div class="stamp">Leitura ${ago(p.at)}</div>` : ""}
+  </article>`;
+}
+
+function soloOdds(perDay) {           // "1 bloco a cada ~111 dias"
+  if (!perDay) return "—";
+  const days = 1 / perDay;
+  if (days < 1) return `${nf(perDay, 1)} <small>blocos/dia</small>`;
+  if (days > 730) return `a cada ${nf(days / 365, 0)} <small>anos</small>`;
+  return `a cada ${nf(days, 0)} <small>dias</small>`;
+}
+
+function totalsHtml(t) {
+  const [hv, hu] = hashrate(t.hashrate_ths);
+  const eff = t.power_w && t.hashrate_ths ? t.power_w / t.hashrate_ths : null;
+  const box = (k, v, u) => `<div><div class="k">${k}</div><div class="v">${v}${u ? `<small>${u}</small>` : ""}</div></div>`;
+  return box("Hashrate total", hv, hu) + box("Máquinas ativas", t.online, `de ${t.total}`)
+    + (t.power_w ? box("Potência", nf(t.power_w, 0), "W") : "") + (eff ? box("Eficiência", nf(eff, 1), "J/TH") : "");
+}
+function bayHtml(m) {
+  const P = m.pool_worker, L = m.local, now = Date.now() / 1000;
+  const ths = L && L.online ? L.hashrate_ths : (P && P.online ? P.hashrate_ths : null);
+  const expected = m.limits.expected_ths || L?.expected_ths;
+  const pct = ths != null && expected ? Math.min(100, ths / expected * 100) : null;
+  const state = {
+    online: m.rental?.state === "ativo" ? `Alugado, faltam ${duration(m.rental.end - now)}` : "Funcionando",
+    warning: pct != null ? `Atenção, ${nf(pct, 0)}% do esperado` : "Atenção",
+    offline: "Offline", idle: "Sem aluguel", unknown: "Aguardando dados",
+  }[m.status] || "Aguardando dados";
+  const [v, u] = hashrate(ths);
+  return `<a class="bay" href="#m-${esc(m.id)}" aria-label="${esc(m.name)}: ${esc(state)}">
+    <div class="bay-head"><i class="led ${m.status}" aria-hidden="true"></i><span>${esc(m.name)}</span></div>
+    <div class="bay-hash">${ths == null ? "—" : `${v}<small>${u}</small>`}</div>
+    <div class="bay-state">${esc(state)}</div>
+    ${pct != null ? `<div class="bay-bar" title="${nf(pct, 0)}% do esperado"><span class="${pct < 70 ? "low" : ""}" style="width:${pct}%"></span></div>` : ""}
+  </a>`;
+}
+
+
+function renderAlerts(a) {
+  alertState = a;
+  const banner = document.getElementById("alert-banner"), card = document.getElementById("alerts");
+  if (!a) { card.innerHTML = '<div class="muted">Alertas desativados.</div>'; banner.style.display = "none"; return; }
+  const all = a.active.filter(x => x.kind === "alert");
+  const shown = all.filter(x => !x.acked), acked = all.length - shown.length;
+  banner.style.display = shown.length ? "block" : "none";
+  banner.innerHTML = shown.length ? `<b>${shown.length === 1 ? "1 alerta ativo" : shown.length + " alertas ativos"}</b><ul>${shown.map(x =>
+    `<li><span><strong>${esc(x.title)}.</strong> ${esc(x.detail)} <span class="muted">Desde ${fmtTime(x.since, "", true)}.</span></span>
+     <button class="close" data-ack="${esc(x.key)}" title="Fechar este aviso (volta se o problema resolver e acontecer de novo)" aria-label="Fechar o aviso ${esc(x.title)}">×</button></li>`).join("")}</ul>` : "";
+  const icon = e => e.event === "resolved" ? (e.kind === "info" ? "⏹" : "✅") : (e.kind === "info" ? "ℹ️" : "🔴");
+  const tg = a.telegram ? "Avisos também chegam pelo Telegram." : "Telegram não configurado: os alertas aparecem só aqui (veja docs/alertas-telegram.md).";
+  const ackNote = acked ? `<div class="hidden-note">${acked === 1 ? "1 alerta ativo foi fechado no aviso e continua valendo até resolver." : acked + " alertas ativos foram fechados no aviso e continuam valendo até resolver."} <button class="linkbtn" data-unackall>Mostrar de novo</button></div>` : "";
+  card.innerHTML = `<div class="alerts-top"><div class="card-sub">${tg}</div>${a.recent.length ? '<button class="linkbtn" data-clear style="font-size:12.5px">Limpar tudo</button>' : ""}</div>` + ackNote + (a.recent.length
+    ? `<ul class="events">${a.recent.map((e, i) => `<li><span aria-hidden="true">${icon(e)}</span><span>${esc(e.title)}${e.event === "fired" ? `<div class="x">${esc(e.detail)}</div>` : ""}</span><span class="d">${fmtTime(e.ts, "", true)}</span>
+       <button class="close" data-del="${i}" title="Apagar do histórico" aria-label="Apagar ${esc(e.title)} do histórico">×</button></li>`).join("")}</ul>`
+    : '<div class="muted" style="margin-top:10px">Nenhum alerta no histórico.</div>');
+}
+
+let lastOk = 0, hiddenIds = new Set(), alertState = null;
+
+async function act(url, body) {        // ações do painel (fechar card / alerta)
+  try {
+    const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "X-Minerador": "1" },
+                                 body: JSON.stringify(body || {}) });
+    if (!r.ok) { const d = await r.json().catch(() => ({})); alert(d.detail || `Erro ${r.status}`); }
+  } catch (e) { alert("Sem conexão com o painel."); }
+  await refresh();
+}
+document.addEventListener("click", ev => {
+  const b = ev.target.closest("button");
+  if (!b) return;
+  if (b.dataset.hide) act(`/api/miners/${encodeURIComponent(b.dataset.hide)}/hide`);
+  else if (b.hasAttribute("data-showall")) Promise.all([...hiddenIds].map(id => fetch(`/api/miners/${encodeURIComponent(id)}/show`, { method: "POST", headers: { "X-Minerador": "1" } }))).then(refresh);
+  else if (b.dataset.ack) act("/api/alerts/ack", { key: b.dataset.ack });
+  else if (b.hasAttribute("data-unackall")) act("/api/alerts/ack", { undo: true });
+  else if (b.dataset.del && alertState) {
+    const e = alertState.recent[+b.dataset.del];
+    if (e) act("/api/alerts/events/delete", { ts: e.ts, key: e.key, event: e.event });
+  } else if (b.hasAttribute("data-clear") && confirm("Apagar todo o histórico de alertas?")) act("/api/alerts/events/clear");
+});
+async function refresh() {
+  try {
+    const r = await fetch("/api/status", { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    const s = await r.json();
+    lastOk = Date.now();
+    const led = document.getElementById("live-led");   // pisca a cada leitura nova
+    led.classList.remove("blink"); void led.offsetWidth; led.classList.add("blink");
+    POOL_LABEL = Object.fromEntries(s.pools.map(p => [p.id, { defisurfers: "pool.defisurfers.xyz", parasite: "Parasite Pool", hashcommander: "Hash Commander (BCH)" }[p.type] || p.id]));
+    workerOwner = Object.fromEntries(s.miners.filter(m => m.pool && m.worker).map(m => [m.pool + "|" + m.worker, m.name]));
+    document.getElementById("totals").innerHTML = totalsHtml(s.totals);
+    const visible = s.miners.filter(m => !m.hidden), hidden = s.miners.filter(m => m.hidden);
+    hiddenIds = new Set(hidden.map(m => m.id));
+    document.getElementById("bays").innerHTML = visible.map(bayHtml).join("");
+    document.getElementById("miners").innerHTML = visible.length ? visible.map(minerCard).join("") : '<div class="empty">Nenhuma máquina visível</div>';
+    document.getElementById("miners-hidden").innerHTML = hidden.length
+      ? `${hidden.length === 1 ? "Aluguel encerrado fechado" : "Aluguéis encerrados fechados"}: ${hidden.map(m => esc(m.name)).join(", ")}. <button class="linkbtn" data-showall>Mostrar de novo</button>` : "";
+    if (hist) drawChart();
+    document.getElementById("pools").innerHTML = s.pools.map(poolCard).join("");
+    renderAlerts(s.alerts);
+  } catch (e) { /* mantém os últimos dados e marca como desatualizado */ }
+  updateClock();
+}
+function updateClock() {
+  const el = document.getElementById("updated"), txt = el.querySelector("span");
+  if (!lastOk) { txt.textContent = "Sem conexão com o servidor do painel"; el.className = "live stale"; return; }
+  const stale = (Date.now() - lastOk) / 1000 > 3 * REFRESH_MS / 1000;
+  txt.textContent = stale ? `Sem conexão. Última atualização ${ago(lastOk / 1000)}` : `Ao vivo, atualizado ${ago(lastOk / 1000)}`;
+  el.className = "live" + (stale ? " stale" : "");
+}
+
+// ------------------------------------------------------------------ gráfico de hashrate
+const SLOTS = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)", "var(--s6)"];
+let hist = null, chartRange = "24h", crossIdx = null;
+try { chartRange = localStorage.getItem("minerador.range") || "24h"; } catch (e) {}
+if (!["24h", "3d", "7d", "30d"].includes(chartRange)) chartRange = "24h";
+
+function chartSeries(h) {
+  // cor segue a máquina (ordem do config), nunca a posição na lista filtrada
+  const out = h.series.map((s, i) => ({ ...s, color: SLOTS[i % SLOTS.length] })).filter(s => !hiddenIds.has(s.id));
+  h.pool_totals.forEach(t => out.push({ ...t, color: "var(--total)", total: true }));
+  return out.filter(s => s.points.length);
+}
+function niceMax(v) {
+  if (!(v > 0)) return 1;
+  const raw = v * 1.12 / 4, mag = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 2.5, 5, 10].map(f => f * mag).find(x => x >= raw);
+  return step * 4;
+}
+function fmtTime(t, range, long) {
+  const d = new Date(t * 1000);
+  const hm = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const dm = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  if (long) return `${dm} ${hm}`;
+  return range === "24h" ? hm : dm;
+}
+const hrText = ths => { const [v, u] = hashrate(ths); return `${v} ${u}`; };
+
+function drawChart() {
+  const el = document.getElementById("chart");
+  const tip = document.getElementById("tip");
+  if (!hist) return;
+  const series = chartSeries(hist);
+  const W = Math.max(280, el.clientWidth), narrow = W < 560;
+  const H = narrow ? 236 : 276, m = { t: 26, r: narrow ? 8 : 132, b: 24, l: 44 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const x0 = hist.since, x1 = hist.until;
+  const yMax = niceMax(Math.max(0, ...series.flatMap(s => s.points.map(p => p[1]))));
+  const X = t => m.l + (t - x0) / (x1 - x0) * iw, Y = v => m.t + ih - v / yMax * ih;
+
+  let g = "";
+  for (let i = 0; i <= 4; i++) {           // grade e eixo Y
+    const v = yMax * i / 4, y = Y(v);
+    g += `<line class="${i ? "grid-line" : "base-line"}" x1="${m.l}" x2="${m.l + iw}" y1="${y}" y2="${y}"/>`;
+    g += `<text class="tick" x="${m.l - 6}" y="${y + 4}" text-anchor="end">${nf(v, v < 10 && v % 1 ? 1 : 0)}</text>`;
+  }
+  g += `<text class="tick" x="${m.l - 6}" y="${m.t - 14}" text-anchor="end">TH/s</text>`;
+  const stepH = { "24h": 3, "3d": 12, "7d": 24, "30d": 24 * 5 }[hist.range] * 3600;
+  const off = new Date().getTimezoneOffset() * 60;
+  for (let t = Math.ceil((x0 + off) / stepH) * stepH - off; t <= x1; t += stepH) {   // eixo X em horário local
+    if (X(t) < m.l + 16 || X(t) > m.l + iw - 16) continue;
+    g += `<text class="tick" x="${X(t)}" y="${H - 6}" text-anchor="middle">${fmtTime(t, hist.range)}</text>`;
+  }
+
+  const gap = hist.bucket_s * 1.5;
+  const labels = [];
+  for (const s of series) {
+    let d = "", prev = null;
+    for (const [t, v] of s.points) {
+      d += (prev === null || t - prev > gap ? "M" : "L") + X(t).toFixed(1) + "," + Y(v).toFixed(1);
+      prev = t;
+    }
+    g += `<path d="${d}" fill="none" style="stroke:${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    // pontos isolados (sem vizinho) viram marcador, senão ficam invisíveis
+    s.points.forEach(([t, v], i) => {
+      const a = s.points[i - 1], b = s.points[i + 1];
+      if ((!a || t - a[0] > gap) && (!b || b[0] - t > gap))
+        g += `<circle cx="${X(t)}" cy="${Y(v)}" r="4" style="fill:${s.color};stroke:var(--surface)" stroke-width="2"/>`;
+    });
+    const last = s.points[s.points.length - 1];
+    labels.push({ y: Y(last[1]), x: X(last[0]), text: `${s.total ? "Total pool" : s.name}`, color: s.color });
+  }
+  if (!narrow) {                            // rótulos diretos no fim das linhas, sem colisão
+    labels.sort((a, b) => a.y - b.y);
+    for (let i = 1; i < labels.length; i++) labels[i].y = Math.max(labels[i].y, labels[i - 1].y + 14);
+    const over = labels.length ? labels[labels.length - 1].y - (m.t + ih) : 0;
+    if (over > 0) labels.forEach(l => l.y -= over);
+    for (const l of labels)
+      g += `<text class="dlabel" x="${m.l + iw + 8}" y="${l.y + 4}">${esc(l.text)}</text>`;
+  }
+  g += `<g id="xh"></g><rect id="hit" x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent"/>`;
+
+  const svgNS = `<svg viewBox="0 0 ${W} ${H}" height="${H}" aria-hidden="true">${g}</svg>`;
+  el.querySelectorAll("svg").forEach(n => n.remove());
+  el.insertAdjacentHTML("afterbegin", svgNS);
+
+  // ----- cursor + tooltip (encontra o X mais próximo; lista todas as séries)
+  const xs = [...new Set(series.flatMap(s => s.points.map(p => p[0])))].sort((a, b) => a - b);
+  const valueAt = (s, t) => { const p = s.points.find(p => Math.abs(p[0] - t) < hist.bucket_s / 2); return p ? p[1] : null; };
+  function show(idx) {
+    const xh = el.querySelector("#xh");
+    if (idx == null || !xs.length) { xh.innerHTML = ""; tip.style.display = "none"; return; }
+    crossIdx = idx = Math.max(0, Math.min(xs.length - 1, idx));
+    const t = xs[idx], px = X(t);
+    let dots = `<line class="cross" x1="${px}" x2="${px}" y1="${m.t}" y2="${m.t + ih}"/>`;
+    let rows = "";
+    for (const s of series) {
+      const v = valueAt(s, t);
+      if (v != null) dots += `<circle cx="${px}" cy="${Y(v)}" r="4" style="fill:${s.color};stroke:var(--surface)" stroke-width="2"/>`;
+      rows += `<div class="r"><span><i style="background:${s.color}"></i>${esc(s.total ? "Total na pool" : s.name)}</span><b>${v == null ? "—" : hrText(v)}</b></div>`;
+    }
+    xh.innerHTML = dots;
+    tip.innerHTML = `<div class="t">${fmtTime(t, hist.range, true)}</div>${rows}`;
+    tip.style.display = "block";
+    const tw = tip.offsetWidth, left = px + 12 + tw > W ? px - 12 - tw : px + 12;
+    tip.style.left = `${Math.max(0, left)}px`;
+    tip.style.top = `${m.t}px`;
+  }
+  const hit = el.querySelector("#hit");
+  hit.addEventListener("pointermove", ev => {
+    const r = el.getBoundingClientRect(), t = x0 + (ev.clientX - r.left - m.l) / iw * (x1 - x0);
+    let best = 0; xs.forEach((x, i) => { if (Math.abs(x - t) < Math.abs(xs[best] - t)) best = i; });
+    show(best);
+  });
+  hit.addEventListener("pointerleave", () => { crossIdx = null; show(null); });
+  el.onkeydown = ev => {
+    if (ev.key === "ArrowLeft" || ev.key === "ArrowRight") {
+      show(crossIdx == null ? xs.length - 1 : crossIdx + (ev.key === "ArrowRight" ? 1 : -1)); ev.preventDefault();
+    } else if (ev.key === "Escape") { crossIdx = null; show(null); }
+  };
+  el.onblur = () => { crossIdx = null; show(null); };
+
+  // ----- legenda, nota e tabela
+  document.getElementById("legend").innerHTML = series.map(s =>
+    `<span><i style="background:${s.color}"></i>${esc(s.total ? "Total na pool (todas as máquinas)" : s.name)}</span>`).join("")
+    || '<span>Sem dados ainda</span>';
+  const firstOwn = Math.min(...hist.series.filter(s => s.points.length).map(s => s.points[0][0]));
+  document.getElementById("chart-note").textContent = isFinite(firstOwn)
+    ? `Linhas por máquina: gravadas pelo painel desde ${fmtTime(firstOwn, "", true)}. Total: histórico da própria pool (média por ${hist.bucket_s / 60 >= 60 ? hist.bucket_s / 3600 + " h" : hist.bucket_s / 60 + " min"}).`
+    : "As linhas por máquina aparecem conforme o painel grava leituras.";
+  const head = `<tr><th>Horário</th>${series.map(s => `<th class="num">${esc(s.total ? "Total pool" : s.name)}</th>`).join("")}</tr>`;
+  const body = [...xs].reverse().map(t => `<tr><td>${fmtTime(t, "", true)}</td>${series.map(s => { const v = valueAt(s, t); return `<td class="num">${v == null ? "—" : hrText(v)}</td>`; }).join("")}</tr>`).join("");
+  document.getElementById("chart-table").innerHTML = `<table><thead>${head}</thead><tbody>${body}</tbody></table>`;
+  if (crossIdx != null) show(crossIdx);
+}
+
+async function loadHistory() {
+  try {
+    const r = await fetch(`/api/history?range=${chartRange}`, { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    hist = await r.json();
+    drawChart();
+  } catch (e) {
+    document.getElementById("chart-note").textContent = "Não foi possível carregar o histórico.";
+  }
+}
+function setRange(r) {
+  chartRange = r;
+  try { localStorage.setItem("minerador.range", r); } catch (e) {}
+  document.querySelectorAll("#ranges button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.r === r)));
+  loadHistory();
+}
+document.getElementById("ranges").addEventListener("click", ev => { if (ev.target.dataset.r) setRange(ev.target.dataset.r); });
+let resizeT; window.addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(drawChart, 120); });
+setRange(chartRange);
+setInterval(loadHistory, 60000);
+
+// ------------------------------------------------------------------ blocos (mempool.space)
+const BVIEWS = ["rede", "minhas", "solo"];
+let bview = "rede", bpools = [];
+try { bview = localStorage.getItem("minerador.blocks") || "rede"; } catch (e) {}
+bview = new URLSearchParams(location.search).get("blocos") || bview;   // atalho: /?blocos=minhas
+if (!BVIEWS.includes(bview) && !/^pool:[a-z0-9-]{1,40}$/.test(bview)) bview = "rede";
+
+const btc = sat => sat == null ? "—" : (sat / 1e8).toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+function blockWhen(ts) {
+  if (!ts) return "—";
+  if (Date.now() / 1000 - ts < 86400) return ago(ts);
+  return new Date(ts * 1000).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
+}
+const POOL_NAMES = { unknown: "Desconhecida", defisurfers: "pool.defisurfers.xyz", hashcommander: "Hash Commander" };
+function blocksDesc(d) {
+  const nameOf = slug => POOL_NAMES[slug] || bpools.find(p => p.slug === slug)?.name || slug;
+  if (d.view === "rede") return "Últimos blocos da rede Bitcoin, de todas as pools.";
+  if (d.view === "minhas") return `Blocos das pools onde suas máquinas mineram: ${d.my_pools.map(nameOf).join(", ") || "nenhuma"}.`;
+  if (d.view === "solo") return "Pools solo e pequenas, onde uma máquina pequena (Bitaxe, NerdMiner) pode achar um bloco sozinha.";
+  return `Blocos mais recentes de ${nameOf(d.view.slice(5))}.`;
+}
+function renderBlocks(d) {
+  const bch = d.my_pools.includes("hashcommander") && (d.view === "minhas" || d.view === "pool:hashcommander");
+  document.getElementById("bdesc").textContent = blocksDesc(d) + (bch ? " Fontes: mempool.space (BTC) e a própria pool (BCH)." : " Fonte: mempool.space.");
+  const rows = d.blocks.map(b => {
+    const url = b.explorer_url || (b.hash ? `${d.mempool_url}/block/${b.hash}` : null);
+    const link = url ? `<a href="${esc(url)}" target="_blank" rel="noopener">${b.height.toLocaleString("pt-BR")}</a>` : b.height.toLocaleString("pt-BR");
+    const tags = (b.coin !== "BTC" ? `<span class="tag coin">${esc(b.coin)}</span>` : "")
+      + (b.mine ? '<span class="tag mine">sua pool</span>' : "")
+      + (b.paid_me || b.found_by_me ? '<span class="tag paid">pagou você</span>' : "");
+    const when = b.ts ? `<span title="${fmtTime(b.ts, "", true)}">${blockWhen(b.ts)}</span>` : "—";
+    return `<tr class="${b.mine ? "mine" : ""}"><td>${link}</td><td>${when}</td>
+      <td class="pool">${esc(POOL_NAMES[b.pool_slug] || b.pool_name)}${tags}${b.worker ? `<span class="who">Achado por ${esc(b.worker)}</span>` : ""}</td>
+      <td class="num">${btc(b.reward_sats)}${b.reward_sats != null ? ` <small class="muted">${esc(b.coin)}</small>` : ""}</td>
+      <td class="num hide-sm">${btc(b.fees_sats)}${b.fees_sats != null ? ` <small class="muted">${esc(b.coin)}</small>` : ""}</td>
+      <td class="num hide-sm">${b.tx_count == null ? "—" : b.tx_count.toLocaleString("pt-BR")}</td></tr>`;
+  }).join("");
+  const table = rows ? `<table class="blocks-table"><thead><tr><th>Bloco</th><th>Quando</th><th>Pool</th>
+      <th class="num">Recompensa</th><th class="num hide-sm">Taxas</th><th class="num hide-sm">Transações</th></tr></thead><tbody>${rows}</tbody></table>`
+    : '<div class="muted" style="margin-top:12px">Nenhum bloco encontrado ainda.</div>';
+  const notes = d.notes.map(n => `<div>${esc(n)}</div>`).join("");
+  document.getElementById("blocks-body").innerHTML = (d.error ? `<div class="err">${esc(d.error)}</div>` : "")
+    + table + (notes ? `<div class="blocks-notes">${notes}</div>` : "");
+}
+async function loadBlocks() {
+  try {
+    const r = await fetch(`/api/blocks?view=${encodeURIComponent(bview)}`, { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    if (d.view === bview) renderBlocks(d);       // ignora resposta atrasada de outro filtro
+  } catch (e) {
+    document.getElementById("blocks-body").innerHTML = '<div class="err">Não foi possível carregar os blocos.</div>';
+  }
+}
+function setBlockView(v) {
+  bview = v;
+  try { localStorage.setItem("minerador.blocks", v); } catch (e) {}
+  document.querySelectorAll("#bviews button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === v)));
+  const sel = document.getElementById("bpool");
+  sel.value = v.startsWith("pool:") ? v.slice(5) : "";
+  sel.classList.toggle("on", v.startsWith("pool:"));
+  loadBlocks();
+}
+async function loadBlockPools() {
+  try {
+    const d = await (await fetch("/api/blocks/pools")).json();
+    bpools = d.pools || [];
+    const sel = document.getElementById("bpool");
+    sel.innerHTML = '<option value="">Outra pool…</option>' + bpools.map(p =>
+      `<option value="${esc(p.slug)}">${esc(POOL_NAMES[p.slug] || p.name)}${p.blocks != null ? ` · ${p.blocks.toLocaleString("pt-BR")} no último ano` : ""}</option>`).join("");
+    if (bview.startsWith("pool:")) { sel.value = bview.slice(5); sel.classList.add("on"); }
+  } catch (e) {}
+}
+document.getElementById("bviews").addEventListener("click", ev => { if (ev.target.dataset.v) setBlockView(ev.target.dataset.v); });
+document.getElementById("bpool").addEventListener("change", ev => setBlockView(ev.target.value ? `pool:${ev.target.value}` : "rede"));
+loadBlockPools().then(() => setBlockView(bview));
+setInterval(loadBlocks, 60000);
+
+refresh();
+setInterval(refresh, REFRESH_MS);
+setInterval(updateClock, 1000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+</script>
+</body>
+</html>

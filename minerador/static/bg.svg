@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- Usado como máscara (alfa) no fundo da página: a cor vem do CSS. -->
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="1"/>
+    </pattern>
+    <linearGradient id="area" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000" stop-opacity=".35"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset=".25" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="1"/>
+    </linearGradient>
+    <mask id="gridfade"><rect width="1600" height="1000" fill="url(#fade)"/></mask>
+  </defs>
+
+  <!-- papel milimetrado, mais forte embaixo -->
+  <rect width="1600" height="1000" fill="url(#grid)" mask="url(#gridfade)"/>
+
+  <!-- ₿ grande, só contorno, inclinado como no logo -->
+  <g transform="translate(1180 120) rotate(14 110 150) scale(1.55)" fill="none" stroke="#000" stroke-width="2.4" stroke-linejoin="round" stroke-opacity=".9">
+    <path d="M40 40H130C170 40 185 65 185 92C185 115 172 130 150 136C180 142 198 162 198 192C198 225 175 250 135 250H40Z
+             M80 75V122H125C140 122 147 112 147 98C147 84 140 75 125 75Z
+             M80 155V215H130C150 215 158 202 158 185C158 168 150 155 130 155Z"/>
+    <path d="M72 40V8H90V40M112 40V8H130V40M72 250V282H90V250M112 250V282H130V250"/>
+  </g>
+
+  <!-- candles discretos -->
+  <g stroke="#000" stroke-opacity=".55" stroke-width="2" fill="none">
+    <path d="M150 742V820M190 720V800M230 748V842M270 700V778M310 690V760M350 712V790M390 668V744M430 650V720M470 676V748M510 628V700"/>
+  </g>
+  <g fill="#000" fill-opacity=".45">
+    <rect x="144" y="760" width="12" height="44"/><rect x="184" y="738" width="12" height="40"/>
+    <rect x="224" y="766" width="12" height="54"/><rect x="264" y="716" width="12" height="40"/>
+    <rect x="304" y="704" width="12" height="38"/><rect x="344" y="728" width="12" height="44"/>
+    <rect x="384" y="682" width="12" height="42"/><rect x="424" y="664" width="12" height="38"/>
+    <rect x="464" y="690" width="12" height="40"/><rect x="504" y="642" width="12" height="40"/>
+  </g>
+
+  <!-- linha de preço com área -->
+  <path d="M0 880L90 860 170 872 260 820 340 836 430 770 520 790 610 720 700 742 790 690 880 708 980 640 1070 664 1160 600 1260 618 1350 560 1450 580 1600 510V1000H0Z" fill="url(#area)"/>
+  <path d="M0 880L90 860 170 872 260 820 340 836 430 770 520 790 610 720 700 742 790 690 880 708 980 640 1070 664 1160 600 1260 618 1350 560 1450 580 1600 510" fill="none" stroke="#000" stroke-width="2.4" stroke-linejoin="round"/>
+  <g fill="#000"><circle cx="1350" cy="560" r="5"/><circle cx="1160" cy="600" r="4"/><circle cx="980" cy="640" r="4"/></g>
+</svg>
