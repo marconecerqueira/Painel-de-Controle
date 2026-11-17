@@ -199,6 +199,18 @@
   .blocks-top select { font: 500 14px var(--cond); color: var(--ink); background: var(--surface); border: 0; box-shadow: inset 0 0 0 1px var(--hair); border-radius: 9px; padding: 6px 10px; max-width: 100%; }
   .blocks-top select.on { box-shadow: inset 0 0 0 2px var(--accent); }
   .blocks-desc { margin-top: 10px; }
+  .bsearch { position: relative; flex: 1 1 260px; max-width: 440px; margin-left: auto; }
+  .bsearch input { width: 100%; font: 400 14px var(--text); color: var(--ink); background: var(--surface); border: 0; -webkit-appearance: none; appearance: none;
+    box-shadow: inset 0 0 0 1px var(--hair); border-radius: 9px; padding: 7px 10px 7px 36px; }
+  .bsearch input::placeholder { color: var(--muted); }
+  .bsearch input:focus { outline: none; box-shadow: inset 0 0 0 2px var(--accent); }
+  .bsearch button { position: absolute; left: 2px; top: 50%; transform: translateY(-50%); width: 32px; height: 30px; display: grid; place-items: center;
+    border: 0; background: transparent; color: var(--muted); border-radius: 7px; cursor: pointer; }
+  .bsearch button:hover { color: var(--accent); }
+  .bsearch svg { width: 17px; height: 17px; }
+  .bsearch-msg { font-size: 13px; color: var(--critical); margin-top: 6px; }
+  .bsearch-msg:empty { display: none; }
+  @media (max-width: 560px) { .bsearch { flex-basis: 100%; max-width: none; margin-left: 0; } }
   tr.mine td { background: color-mix(in srgb, var(--accent) 6%, transparent); }
   .blocks-table td { white-space: nowrap; }
   .blocks-table td.pool { white-space: normal; }
@@ -295,7 +307,14 @@
         <button data-v="rede">Rede</button><button data-v="minhas">Minhas pools</button><button data-v="solo">Solo e pequenas</button>
       </div>
       <select id="bpool" aria-label="Ver blocos de outra pool"><option value="">Outra pool…</option></select>
+      <form class="bsearch" id="bsearch" role="search">
+        <button type="submit" aria-label="Buscar"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4.5 4.5"/></svg></button>
+        <input type="search" id="bq" list="bq-pools" autocomplete="off" spellcheck="false" enterkeyhint="search"
+          placeholder="Bloco, transação, endereço ou pool" aria-label="Buscar no Bitcoin: altura ou hash de bloco, transação, endereço ou pool">
+        <datalist id="bq-pools"></datalist>
+      </form>
     </div>
+    <div class="bsearch-msg" id="bq-msg" role="status"></div>
     <div class="card-sub blocks-desc" id="bdesc"></div>
     <div id="blocks-body" aria-live="polite"><div class="muted" style="margin-top:10px">Carregando…</div></div>
   </section>
@@ -784,6 +803,7 @@ function blockCube(b, d) {
   </${tag}>`;
 }
 function renderBlocks(d) {
+  mempoolBase = d.mempool_url || mempoolBase;
   const bch = d.my_pools.includes("hashcommander") && (d.view === "minhas" || d.view === "pool:hashcommander");
   document.getElementById("bdesc").textContent = blocksDesc(d) + (bch ? " Fontes: mempool.space (BTC) e a própria pool (BCH)." : " Fonte: mempool.space.");
   const chain = d.blocks.length ? `<div class="chain" tabindex="0" aria-label="Blocos, do mais novo para o mais velho">${d.blocks.map(b => blockCube(b, d)).join("")}</div>
@@ -842,8 +862,38 @@ async function loadBlockPools() {
     sel.innerHTML = '<option value="">Outra pool…</option>' + bpools.map(p =>
       `<option value="${esc(p.slug)}">${esc(POOL_NAMES[p.slug] || p.name)}${p.blocks != null ? ` · ${p.blocks.toLocaleString("pt-BR")} no último ano` : ""}</option>`).join("");
     if (bview.startsWith("pool:")) { sel.value = bview.slice(5); sel.classList.add("on"); }
+    document.getElementById("bq-pools").innerHTML = bpools.map(p => `<option value="${esc(POOL_NAMES[p.slug] || p.name)}">`).join("");
   } catch (e) {}
 }
+// ------------------------------------------------------------------ busca (abre no mempool.space)
+let mempoolBase = "https://mempool.space";
+function searchTarget(raw) {
+  const q = raw.trim();
+  if (!q) return null;
+  const digits = q.replace(/[.\s]/g, "");                 // "975.900" (pt-BR) também vale
+  if (/^\d{1,7}$/.test(digits)) return { url: `${mempoolBase}/block/${digits}` };
+  const hex = q.match(/^([0-9a-f]{64})(?::\d+)?$/i);       // txid ou txid:saída
+  if (hex) return { url: `${mempoolBase}/${/^0{8}/.test(hex[1]) ? "block" : "tx"}/${hex[1].toLowerCase()}` };
+  if (/^(bc1|tb1|bcrt1)[02-9ac-hj-np-z]{8,87}$/i.test(q) || /^[13mn2][1-9A-HJ-NP-Za-km-z]{25,34}$/.test(q))
+    return { url: `${mempoolBase}/address/${q}` };
+  const name = q.toLowerCase(), label = p => (POOL_NAMES[p.slug] || p.name || "").toLowerCase();
+  const pool = bpools.find(p => label(p) === name || p.slug === name)
+    || bpools.find(p => label(p).startsWith(name)) || (name.length >= 3 && bpools.find(p => label(p).includes(name)));
+  if (pool) return { pool: pool.slug };
+  return null;
+}
+document.getElementById("bsearch").addEventListener("submit", ev => {
+  ev.preventDefault();
+  const input = document.getElementById("bq"), msg = document.getElementById("bq-msg");
+  const t = searchTarget(input.value);
+  if (!input.value.trim()) { input.focus(); return; }
+  if (!t) { msg.textContent = "Não reconheci. Digite a altura ou o hash de um bloco, o id de uma transação, um endereço ou o nome de uma pool."; return; }
+  msg.textContent = "";
+  if (t.pool) { setBlockView(`pool:${t.pool}`); input.value = ""; input.blur(); }
+  else window.open(t.url, "_blank", "noopener");
+});
+document.getElementById("bq").addEventListener("input", () => { document.getElementById("bq-msg").textContent = ""; });
+
 document.getElementById("bviews").addEventListener("click", ev => { if (ev.target.dataset.v) setBlockView(ev.target.dataset.v); });
 document.getElementById("bpool").addEventListener("change", ev => setBlockView(ev.target.value ? `pool:${ev.target.value}` : "rede"));
 loadBlockPools().then(() => setBlockView(bview));

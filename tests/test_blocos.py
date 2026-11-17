@@ -100,3 +100,19 @@ def test_failure_keeps_last_good_data():
     assert first["error"] is None
     assert [b["height"] for b in second["blocks"]] == [b["height"] for b in first["blocks"]]
     assert "ConnectError" in second["error"]
+
+
+def test_ordem_pela_altura_mesmo_com_horario_fora_de_ordem():
+    # o minerador grava o horário do bloco; às vezes o mais alto tem horário anterior
+    feed = BlockFeed(make_cfg())
+    blocks = [{"height": 976308, "ts": 2000, "pool_slug": "f2pool"},
+              {"height": 976309, "ts": 1900, "pool_slug": "foundryusa"},
+              {"height": 976307, "ts": 1800, "pool_slug": "antpool"}]
+    assert [b["height"] for b in feed._mark(blocks, set())] == [976309, 976308, 976307]
+
+
+def test_btc_e_bch_misturados_seguem_a_data():
+    feed = BlockFeed(make_cfg())
+    blocks = [{"height": 976309, "ts": 1000, "pool_slug": "parasite"},
+              {"height": 925000, "ts": 2000, "pool_slug": "hashcommander", "coin": "BCH"}]
+    assert [b["coin"] for b in feed._mark(blocks, set())] == ["BCH", "BTC"]

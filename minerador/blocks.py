@@ -170,9 +170,16 @@ class BlockFeed:
 
     # ------------------------------------------------------------------ API
     def _mark(self, blocks: list[dict], defi_heights: set[int]) -> list[dict]:
-        # BTC e BCH têm alturas parecidas: a chave é (moeda, altura); a ordem é pela data
+        # BTC e BCH têm alturas parecidas: a chave é (moeda, altura).
+        # Uma moeda só: ordem pela altura, como no mempool (o horário gravado pelo minerador
+        # pode vir fora de ordem). BTC + BCH misturados: alturas não se comparam, vale a data.
+        coins = {b.get("coin") or "BTC" for b in blocks}
+        if len(coins) <= 1:
+            key = lambda b: -(b.get("height") or 0)  # noqa: E731
+        else:
+            key = lambda b: (-(b.get("ts") or 0), -(b.get("height") or 0))  # noqa: E731
         out, seen = [], set()
-        for b in sorted(blocks, key=lambda b: (-(b.get("ts") or 0), -(b.get("height") or 0))):
+        for b in sorted(blocks, key=key):
             coin = b.get("coin") or "BTC"
             if (coin, b.get("height")) in seen:
                 continue
