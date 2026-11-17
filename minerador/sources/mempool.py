@@ -24,6 +24,7 @@ POOL_TYPE_SLUG = {"parasite": "parasite"}
 def parse_block(b: dict) -> dict:
     ex = b.get("extras") or {}
     pool = ex.get("pool") or {}
+    fee_range = ex.get("feeRange") if isinstance(ex.get("feeRange"), list) else []
     return {
         "height": b.get("height"),
         "hash": b.get("id"),
@@ -33,6 +34,11 @@ def parse_block(b: dict) -> dict:
         "reward_sats": ex.get("reward"),
         "fees_sats": ex.get("totalFees"),
         "tx_count": b.get("tx_count"),
+        "size": b.get("size"),
+        "weight": b.get("weight"),
+        "median_fee": ex.get("medianFee"),
+        "fee_min": fee_range[0] if fee_range else None,
+        "fee_max": fee_range[-1] if fee_range else None,
         "coinbase_addresses": ex.get("coinbaseAddresses") or
                               ([ex["coinbaseAddress"]] if ex.get("coinbaseAddress") else []),
     }

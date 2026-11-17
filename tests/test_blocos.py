@@ -36,11 +36,14 @@ def run(cfg, *views, transport=None):
 
 def test_parse_block():
     b = mempool.parse_block({"id": "abc", "height": 10, "timestamp": 5, "tx_count": 7,
+                             "size": 1_500_000, "weight": 3_990_000,
                              "extras": {"reward": 312_600_000, "totalFees": 100_000,
+                                        "medianFee": 2.5, "feeRange": [1, 2, 3, 250],
                                         "pool": {"name": "Solo CK", "slug": "solock"},
                                         "coinbaseAddress": "bc1qx"}})
     assert b["pool_slug"] == "solock" and b["reward_sats"] == 312_600_000
     assert b["coinbase_addresses"] == ["bc1qx"]
+    assert (b["median_fee"], b["fee_min"], b["fee_max"], b["weight"]) == (2.5, 1, 250, 3_990_000)
     assert mempool.parse_block({"height": 1})["pool_slug"] == "unknown"
 
 

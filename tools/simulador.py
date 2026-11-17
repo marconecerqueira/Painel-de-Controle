@@ -193,7 +193,10 @@ POOLS = [("foundryusa", "Foundry USA", 14558), ("antpool", "AntPool", 9570), ("f
 def mem_block(height: int, slug: str, name: str, ts: float, addr: str = "bc1qoutro") -> dict:
     return {"id": f"{height:064x}", "height": height, "timestamp": int(ts), "tx_count": 3000 + height % 2000,
             "difficulty": 134823837323272.7,
+            "size": 1_200_000 + height * 7919 % 600_000, "weight": 3_200_000 + height * 104729 % 793_000,
             "extras": {"reward": 312_500_000 + height % 3_000_000, "totalFees": height % 3_000_000,
+                       "medianFee": [1.2, 2.1, 3.4, 6, 12, 28, 75][height % 7],
+                       "feeRange": [1, 1.5, 2.5, 4, 9, 40, [60, 150, 302, 900][height % 4]],
                        "pool": {"id": 1, "name": name, "slug": slug}, "coinbaseAddresses": [addr]}}
 
 

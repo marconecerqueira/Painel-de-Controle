@@ -99,6 +99,8 @@ class BlockFeed:
                     except (httpx.HTTPError, ValueError) as e:
                         self._by_height[h] = {"height": h, "hash": None, "ts": None, "pool_slug": "unknown",
                                               "reward_sats": None, "fees_sats": None, "tx_count": None,
+                                              "size": None, "weight": None, "median_fee": None,
+                                              "fee_min": None, "fee_max": None,
                                               "coinbase_addresses": [], "_partial": True}
                         log.warning("bloco %s da defisurfers sem detalhes: %s", h, describe_error(e))
                 b = dict(self._by_height[h], pool_name="defisurfers", pool_slug="defisurfers")
@@ -141,6 +143,8 @@ class BlockFeed:
                     "explorer_url": BCH_EXPLORER + str(int(height)),
                     "reward_sats": round(reward * 1e8) if reward is not None and reward < 100 else None,
                     "fees_sats": None, "tx_count": parse_number(f.get("tx_count")),
+                    "size": parse_number(f.get("size")), "weight": None,
+                    "median_fee": None, "fee_min": None, "fee_max": None,
                     "worker": worker, "found_by_me": finder_id in self.my_ids,
                     "coinbase_addresses": [],
                 })
