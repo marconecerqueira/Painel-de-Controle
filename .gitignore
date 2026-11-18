@@ -9,3 +9,6 @@ config.toml
 minerador.log
 *.log
 .DS_Store
+
+# app de barra de menu (gerado por macos/build.sh)
+macos/build/
