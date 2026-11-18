@@ -50,6 +50,8 @@ codesign --force --deep --sign - "$APP"
 
 mkdir -p "$HOME/Applications"
 pkill -x PainelBarra 2>/dev/null || true
+# espera o app antigo fechar; abrir antes disso dá o erro -600 do macOS
+for _ in {1..50}; do pgrep -x PainelBarra >/dev/null || break; sleep 0.2; done
 rm -rf "${DEST:?}"
 cp -R "$APP" "$DEST"
 echo "Instalado em $DEST"

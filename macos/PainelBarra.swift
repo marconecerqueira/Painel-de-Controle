@@ -164,12 +164,12 @@ final class Store: ObservableObject {
 
     /// Texto da barra de menu. O ₿ é o caractere da fonte do sistema: um SF Symbol dentro do
     /// texto do MenuBarExtra não aparece (só o texto aparecia).
-    var barTitle: String {
+    var barText: String {
         guard let snap, error == nil else { return "₿ —" }
-        let text = "₿ " + Fmt.hashrate(snap.totals.hashrate_ths)
-        if activeAlerts.isEmpty { return text }
-        return text + " ⚠︎"
+        return "₿ " + Fmt.hashrate(snap.totals.hashrate_ths)
     }
+
+    var barTitle: String { activeAlerts.isEmpty ? barText : barText + " ⚠︎" }
 
     private func request(_ path: String, method: String = "GET", body: [String: Any]? = nil) async throws -> Data {
         guard let url = URL(string: base + path) else { throw URLError(.badURL) }
@@ -546,6 +546,20 @@ struct ContentView: View {
     }
 }
 
+/// O macOS pinta o texto da barra de menu de uma cor só; para ficar verde, o rótulo vira uma
+/// imagem colorida (isTemplate = false). Verde médio: legível com a barra clara e com a escura.
+@MainActor
+func barImage(_ text: String, alert: Bool) -> NSImage {
+    let green = Color(red: 0.13, green: 0.78, blue: 0.36)
+    var label = Text(text).foregroundColor(green)
+    if alert { label = label + Text(" ⚠︎").foregroundColor(.orange) }
+    let renderer = ImageRenderer(content: label.font(.system(size: 13.5, weight: .bold)).monospacedDigit())
+    renderer.scale = NSScreen.main?.backingScaleFactor ?? 2
+    let image = renderer.nsImage ?? NSImage()
+    image.isTemplate = false
+    return image
+}
+
 @main
 struct PainelBarraApp: App {
     @StateObject private var store = Store()
@@ -554,7 +568,8 @@ struct PainelBarraApp: App {
         MenuBarExtra {
             ContentView().environmentObject(store)
         } label: {
-            Text(store.barTitle)
+            Image(nsImage: barImage(store.barText, alert: !store.activeAlerts.isEmpty))
+                .accessibilityLabel(store.barTitle)
         }
         .menuBarExtraStyle(.window)
     }
