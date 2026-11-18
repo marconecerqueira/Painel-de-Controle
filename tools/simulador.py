@@ -210,6 +210,15 @@ def mem_recent():
     return [mem_block(h - i, *POOLS[(h - i) % 3][:2], now - i * 600 - 120) for i in range(15)]
 
 
+@app.get("/mempool/api/v1/fees/mempool-blocks")
+def mem_pending():
+    fees = [(4.1, 2.6, 302), (2.4, 1.8, 2.6), (1.9, 1.5, 1.8), (1.2, 1.0, 1.5)]
+    return [{"blockSize": 1_550_000, "blockVSize": 997_900 if i < 3 else 6_300_000,
+             "nTx": 3200 + i * 400 if i < 3 else 24000, "totalFees": int(wobble(4e6 / (i + 1))),
+             "medianFee": wobble(m, .02), "feeRange": [lo, (lo + hi) / 2, hi]}
+            for i, (m, lo, hi) in enumerate(fees)]
+
+
 @app.get("/mempool/api/v1/mining/pool/{slug}/blocks")
 def mem_pool_blocks(slug: str):
     name = next((n for s, n, _ in POOLS if s == slug), None)

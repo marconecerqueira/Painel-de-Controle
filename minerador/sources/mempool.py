@@ -44,6 +44,26 @@ def parse_block(b: dict) -> dict:
     }
 
 
+MAX_BLOCK_VSIZE = 1_000_000
+
+
+def parse_pending(data: list) -> list[dict]:
+    """Próximos blocos projetados pelo mempool (fila de transações), do próximo para o mais distante.
+
+    O último item junta o resto da fila: `blocks` diz quantos blocos ele equivale.
+    """
+    out = []
+    for i, b in enumerate(x for x in data if isinstance(x, dict)):
+        fee_range = b.get("feeRange") if isinstance(b.get("feeRange"), list) else []
+        vsize = b.get("blockVSize") or 0
+        out.append({"index": i, "eta_min": (i + 1) * 10, "vsize": vsize, "tx_count": b.get("nTx"),
+                    "fees_sats": b.get("totalFees"), "median_fee": b.get("medianFee"),
+                    "fee_min": fee_range[0] if fee_range else None,
+                    "fee_max": fee_range[-1] if fee_range else None,
+                    "blocks": max(1, -(-int(vsize) // MAX_BLOCK_VSIZE))})
+    return out
+
+
 async def _get(client: httpx.AsyncClient, url: str, timeout: float):
     resp = await client.get(url, timeout=timeout)
     resp.raise_for_status()
@@ -54,6 +74,11 @@ async def recent_blocks(client: httpx.AsyncClient, base_url: str, timeout: float
     """Os 15 blocos mais recentes da rede."""
     data = (await _get(client, f"{base_url}/api/v1/blocks", timeout)).json()
     return [parse_block(b) for b in data if isinstance(b, dict)]
+
+
+async def pending_blocks(client: httpx.AsyncClient, base_url: str, timeout: float = 15.0) -> list[dict]:
+    """Próximos blocos (ainda não minerados), montados pelo mempool a partir da fila."""
+    return parse_pending((await _get(client, f"{base_url}/api/v1/fees/mempool-blocks", timeout)).json())
 
 
 async def pool_blocks(client: httpx.AsyncClient, base_url: str, slug: str,

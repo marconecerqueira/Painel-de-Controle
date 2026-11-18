@@ -26,6 +26,7 @@ log = logging.getLogger("minerador.blocks")
 LIMIT = 25
 BCH_EXPLORER = "https://blockchair.com/bitcoin-cash/block/"
 TTL_RECENT_S = 60
+TTL_PENDING_S = 20   # a fila muda a cada poucos segundos
 TTL_POOL_S = 300
 TTL_POOL_LIST_S = 6 * 3600
 SLUG_RE = re.compile(r"^[a-z0-9-]{1,40}$")
@@ -195,6 +196,7 @@ class BlockFeed:
     async def get(self, view: str) -> dict:
         notes: list[str] = []
         errors: list[str] = []
+        pending: list[dict] = []
         defi_blocks, defi_notes, defi_errors = await self._defi_found()
         defi_heights = {b["height"] for b in defi_blocks}
 
@@ -207,6 +209,12 @@ class BlockFeed:
             # na rede, o bloco da defisurfers aparece com o nome certo
             by_h = {b["height"]: b for b in defi_blocks}
             blocks = [by_h.get(b["height"], b) for b in blocks]
+            # próximos blocos (ainda não minerados): só na visão da rede, como no mempool
+            pending, perr = await self._cached("pending", TTL_PENDING_S,
+                                               lambda: mempool.pending_blocks(self.client, self.base))
+            pending = pending or []
+            if perr:
+                notes.append(f"próximos blocos indisponíveis ({perr})")
         elif view == "minhas":
             blocks, errors = await self._merge_pools(self.my_slugs)
             hc_blocks, hc_notes, hc_errors = await self._hc_found()
@@ -236,7 +244,7 @@ class BlockFeed:
         else:
             raise ValueError(f"filtro inválido: {view}")
 
-        return {"view": view, "blocks": self._mark(blocks, defi_heights), "notes": notes,
+        return {"view": view, "blocks": self._mark(blocks, defi_heights), "pending": pending, "notes": notes,
                 "error": "; ".join(errors) or None, "mempool_url": self.base,
                 "my_pools": self.my_slugs + (["defisurfers"] if self.defi_pools else [])
                             + (["hashcommander"] if self.hc_pools else []),

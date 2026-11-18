@@ -28,7 +28,7 @@
     --pcb: #0e3a2c; --pcb-edge: #1d5442; --silk: #e8f1ec; --silk-2: #a9c3b6; --slot: rgba(232,241,236,.06);
     --good: #0ca30c; --good-text: #006300; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
     --led-good: #3ee07a; --led-warn: #ffc23d; --led-bad: #ff5a55;
-    --accent: #2a78d6; --loss-text: #b3261e;
+    --accent: #2a78d6; --loss-text: #b3261e; --gold-text: #8f6508;
     --text: "Barlow", -apple-system, "Segoe UI", system-ui, sans-serif;
     --cond: "Barlow Semi Condensed", "Barlow", -apple-system, system-ui, sans-serif;
   }
@@ -37,7 +37,7 @@
       --page: #0b1110; --surface: #121a17; --ink: #e4ebe7; --ink-2: #a6b4ad; --muted: #7a8a82;
       --hair: #22302a; --track: #1d2924; --ring: rgba(228,235,231,.10);
       --pcb: #0a2c21; --pcb-edge: #1a4536;
-      --good-text: #0ca30c; --accent: #3987e5; --loss-text: #ff7b72;
+      --good-text: #0ca30c; --accent: #3987e5; --loss-text: #ff7b72; --gold-text: #e3b341;
     }
   }
   * { box-sizing: border-box; }
@@ -227,6 +227,7 @@
     scroll-snap-type: x proximity; scrollbar-width: thin; scroll-padding-left: calc(16px + var(--d)); }
   .blk { flex: 0 0 auto; width: var(--w); scroll-snap-align: start; text-align: center; color: inherit; text-decoration: none !important; }
   .blk-h { display: block; font: 600 16px var(--cond); color: var(--accent); margin-bottom: calc(var(--d) + 4px); font-variant-numeric: tabular-nums; }
+  :root { --gold-block: #9c6f10; }
   .cube { --e: #34413c; position: relative; width: var(--w); height: var(--w); color: #fff;
     background: linear-gradient(to top, var(--c) var(--f), var(--e) var(--f)); transition: transform .15s ease; }
   .cube::before { content: ""; position: absolute; left: 0; top: calc(-1 * var(--d)); width: 100%; height: var(--d);
@@ -247,6 +248,17 @@
   .blk .tags { justify-content: center; margin-top: 4px; }
   .blk.mine .blk-pool::before { content: ""; display: block; width: 0; height: 0; margin: 0 auto 5px; border: 7px solid transparent; border-top: 0; border-bottom-color: var(--accent); }
   .blk.mine .blk-pool { color: var(--ink); font-weight: 600; }
+  /* próximos blocos (na fila, ainda não minerados): dourado listrado, à esquerda do tracejado */
+  .blk.pending .blk-h { color: var(--gold-text); }
+  .blk.pending .cube-in { background: repeating-linear-gradient(135deg, rgba(255,255,255,.08) 0 7px, transparent 7px 14px); }
+  .blk.pending .blk-pool { color: var(--gold-text); font-weight: 600; }
+  /* tracejado no meio do vão (a lateral 3D do cubo minerado ocupa --d à esquerda dele); rótulos numa faixa acima dos cubos */
+  .chain:has(.chain-sep) { padding-top: 28px; }
+  .chain-sep { flex: 0 0 auto; position: relative; width: 0; margin: -22px 0 0 calc(-1 * var(--d)); border-left: 2px dashed color-mix(in srgb, var(--muted) 70%, transparent); }
+  .chain-sep span { position: absolute; top: 0; white-space: nowrap; font: 600 11.5px var(--cond); letter-spacing: .04em; text-transform: uppercase; }
+  .chain-sep .l { right: 8px; color: var(--gold-text); }
+  .chain-sep .r { left: 8px; color: var(--accent); }
+  .fee-key i.gold { width: 22px; background: repeating-linear-gradient(135deg, rgba(255,255,255,.18) 0 4px, transparent 4px 8px), var(--gold-block); }
   .fee-key { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
   .fee-key i { display: inline-block; width: 120px; height: 8px; border-radius: 999px; }
   @media (max-width: 560px) { .chain { --w: 112px; } }
@@ -837,12 +849,33 @@ function blockCube(b, d) {
     ${tags ? `<div class="tags">${tags}</div>` : ""}
   </${tag}>`;
 }
+function pendingCube(p, d, nextHeight) {
+  const fill = p.blocks > 1 ? 100 : Math.max(6, Math.min(100, p.vsize / 1e6 * 100));
+  const h = nextHeight ? (nextHeight + p.index).toLocaleString("pt-BR") + (p.blocks > 1 ? "+" : "") : (p.index ? `+${p.index + 1}` : "Próximo");
+  const when = p.blocks > 1 ? `mais ${p.blocks} blocos na fila` : p.index === 0 ? "próximo bloco" : `em ~${p.eta_min} min`;
+  const label = `${p.index === 0 ? "Próximo bloco" : `Bloco na fila, em cerca de ${p.eta_min} minutos`}: taxa mediana ${feeFmt(p.median_fee)} sat/vB, ${p.tx_count ?? "?"} transações. Ainda não minerado.`;
+  return `<a class="blk pending" href="${esc(`${d.mempool_url}/mempool-block/${p.index}`)}" target="_blank" rel="noopener" aria-label="${esc(label)}">
+    <span class="blk-h">${h}</span>
+    <div class="cube${fill >= 99 ? " full" : ""}" style="--c:var(--gold-block);--f:${fill}%"><div class="cube-in">
+      <div class="fee">~${feeFmt(p.median_fee)} sat/vB</div>
+      ${p.fee_min != null ? `<div class="rng">${feeFmt(p.fee_min)} – ${feeFmt(p.fee_max)} sat/vB</div>` : ""}
+      <div class="rw">${btc(p.fees_sats)} <small>BTC taxas</small></div>
+      ${p.tx_count == null ? "" : `<div class="tx">${p.tx_count.toLocaleString("pt-BR")} transações</div>`}
+      <div class="when">${p.blocks > 1 ? "depois" : `em ~${p.eta_min} min`}</div>
+    </div></div>
+    <div class="blk-pool">${esc(when)}</div>
+  </a>`;
+}
 function renderBlocks(d) {
   mempoolBase = d.mempool_url || mempoolBase;
   const bch = d.my_pools.includes("hashcommander") && (d.view === "minhas" || d.view === "pool:hashcommander");
   document.getElementById("bdesc").textContent = blocksDesc(d) + (bch ? " Fontes: mempool.space (BTC) e a própria pool (BCH)." : " Fonte: mempool.space.");
-  const chain = d.blocks.length ? `<div class="chain" tabindex="0" aria-label="Blocos, do mais novo para o mais velho">${d.blocks.map(b => blockCube(b, d)).join("")}</div>
-    <div class="fee-key">Cor = taxa mediana <i style="background:linear-gradient(to right, ${FEE_SCALE.map(c => c[1]).join(",")})"></i>
+  const pending = d.pending || [];
+  const nextHeight = d.blocks.length && d.blocks[0].coin === "BTC" ? Math.max(...d.blocks.map(b => b.height)) + 1 : null;
+  const queue = pending.length ? pending.slice().reverse().map(p => pendingCube(p, d, nextHeight)).join("")
+    + '<div class="chain-sep" aria-hidden="true"><span class="l">Na fila</span><span class="r">Minerados</span></div>' : "";
+  const chain = d.blocks.length ? `<div class="chain" tabindex="0" aria-label="${pending.length ? "Próximos blocos na fila e blocos minerados" : "Blocos, do mais novo para o mais velho"}">${queue}${d.blocks.map(b => blockCube(b, d)).join("")}</div>
+    <div class="fee-key">${pending.length ? `<i class="gold"></i> na fila, ainda não minerado (projeção do mempool) ·` : ""} Minerados: cor = taxa mediana <i style="background:linear-gradient(to right, ${FEE_SCALE.map(c => c[1]).join(",")})"></i>
       1 → 250+ sat/vB · a parte preenchida mostra quão cheio o bloco está</div>` : "";
   const rows = d.blocks.map(b => {
     const url = b.explorer_url || (b.hash ? `${d.mempool_url}/block/${b.hash}` : null);
@@ -863,12 +896,14 @@ function renderBlocks(d) {
   const notes = d.notes.map(n => `<div>${esc(n)}</div>`).join("");
   const body = document.getElementById("blocks-body");
   const open = body.querySelector("details.tbl")?.open;                   // mantém a lista aberta na atualização
-  const scroll = body.dataset.view === d.view ? body.querySelector(".chain")?.scrollLeft || 0 : 0;   // e a rolagem dos cubos
+  const scroll = body.dataset.view === d.view ? body.querySelector(".chain")?.scrollLeft ?? null : null;   // e a rolagem dos cubos
   body.dataset.view = d.view;
   body.innerHTML = (d.error ? `<div class="err">${esc(d.error)}</div>` : "")
     + chain + table + (notes ? `<div class="blocks-notes">${notes}</div>` : "");
   if (open) body.querySelector("details.tbl").open = true;
-  const ch = body.querySelector(".chain"); if (ch) ch.scrollLeft = scroll;
+  const ch = body.querySelector(".chain"), sep = ch?.querySelector(".chain-sep");
+  // primeira vez: tracejado no meio da tela, com os próximos blocos à esquerda e os minerados à direita
+  if (ch) ch.scrollLeft = scroll ?? (sep ? sep.getBoundingClientRect().left - ch.getBoundingClientRect().left - ch.clientWidth / 2 : 0);
 }
 async function loadBlocks() {
   try {
@@ -932,7 +967,8 @@ document.getElementById("bq").addEventListener("input", () => { document.getElem
 document.getElementById("bviews").addEventListener("click", ev => { if (ev.target.dataset.v) setBlockView(ev.target.dataset.v); });
 document.getElementById("bpool").addEventListener("change", ev => setBlockView(ev.target.value ? `pool:${ev.target.value}` : "rede"));
 loadBlockPools().then(() => setBlockView(bview));
-setInterval(loadBlocks, 60000);
+let blockTick = 0;                    // a fila muda rápido: Rede a cada 20 s, os outros filtros a cada 1 min
+setInterval(() => { if (bview === "rede" || ++blockTick % 3 === 0) loadBlocks(); }, 20000);
 
 refresh();
 setInterval(refresh, REFRESH_MS);

@@ -116,3 +116,22 @@ def test_btc_e_bch_misturados_seguem_a_data():
     blocks = [{"height": 976309, "ts": 1000, "pool_slug": "parasite"},
               {"height": 925000, "ts": 2000, "pool_slug": "hashcommander", "coin": "BCH"}]
     assert [b["coin"] for b in feed._mark(blocks, set())] == ["BCH", "BTC"]
+
+
+def test_parse_pending_blocks():
+    raw = [{"blockSize": 1_600_000, "blockVSize": 997_000, "nTx": 3100, "totalFees": 4_200_000,
+            "medianFee": 3.2, "feeRange": [2.1, 2.5, 3, 5, 40, 302]},
+           {"blockSize": 9_000_000, "blockVSize": 5_400_000, "nTx": 21000, "totalFees": 2_000_000,
+            "medianFee": 1.0, "feeRange": [1, 1.5]}]
+    p = mempool.parse_pending(raw)
+    assert [b["eta_min"] for b in p] == [10, 20]
+    assert (p[0]["median_fee"], p[0]["fee_min"], p[0]["fee_max"]) == (3.2, 2.1, 302)
+    assert p[0]["tx_count"] == 3100 and p[0]["fees_sats"] == 4_200_000 and p[0]["vsize"] == 997_000
+    assert p[0]["blocks"] == 1 and p[1]["blocks"] == 6          # o último junta o resto da fila (5,4 MvB)
+
+
+def test_rede_view_has_pending_blocks_only_there():
+    rede, minhas = run(make_cfg(), "rede", "minhas")
+    assert len(rede["pending"]) >= 2 and rede["pending"][0]["eta_min"] == 10
+    assert rede["pending"][0]["median_fee"] >= rede["pending"][-1]["median_fee"]
+    assert minhas["pending"] == []
