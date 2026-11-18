@@ -60,6 +60,15 @@ def create_app(cfg: Config, start_collector: bool = True) -> FastAPI:
     app = FastAPI(title="Painel de Controle", lifespan=lifespan, docs_url="/api/docs", redoc_url=None)
     app.state.collector = collector
 
+    # O painel não manda prazo de cache: sem isto o Safari mostrava o logo/ícones antigos.
+    # "no-cache" = pode guardar, mas confere com o servidor antes de usar (resposta 304 é barata).
+    @app.middleware("http")
+    async def revalidate_static(request: Request, call_next):
+        resp = await call_next(request)
+        if not request.url.path.startswith("/api/"):
+            resp.headers["Cache-Control"] = "no-cache"
+        return resp
+
     @app.get("/api/status")
     async def status() -> dict:
         return collector.snapshot()
