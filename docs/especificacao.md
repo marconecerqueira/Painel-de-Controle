@@ -118,6 +118,9 @@ API pública e não documentada; o parser é tolerante.
   * É o valor estatístico do hashrate, independente de sorte.
 * **Recebido:** saldo e pagos da defisurfers. Para a Parasite, entrada manual ou leitura da carteira Lightning.
 * **Custo de energia:** `W × 24 / 1000 × tarifa`. A tarifa é configurável (por kWh ou valor fixo por máquina por mês).
+  * Config: `[finance] energy_eur_kwh`; por máquina `power_w` (nominal, vale quando a máquina não informa a potência) ou `energy_eur_month` (taxa fixa); por pool `fee_pct`.
+  * Hashrate da receita: média das últimas 24 h gravada pelo painel (worker offline conta como 0).
+  * Mostra também a tarifa de equilíbrio (€/kWh em que receita = energia) e quanto renderia no `expected_ths`.
 
 ## 7. Fases
 

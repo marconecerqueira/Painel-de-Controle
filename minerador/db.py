@@ -225,6 +225,29 @@ class Database:
                 "AND online = 1 AND ts >= ? AND ts <= ?", (pool_id, worker, since, until)).fetchone()
         return (row[0], row[1]) if row and row[1] else (None, 0)
 
+    def _worker_mean(self, pool_id: str, worker: str, since: float):
+        """(média TH/s, nº de leituras) desde `since`, com o worker offline contando como 0."""
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT AVG(CASE WHEN online = 1 THEN hashrate_ths ELSE 0 END), COUNT(*) FROM worker_readings "
+                "WHERE pool_id = ? AND worker = ? AND ts >= ?", (pool_id, worker, since)).fetchone()
+        return (row[0], row[1]) if row and row[1] else (None, 0)
+
+    def _miner_means(self, miner_id: str, since: float):
+        """(média TH/s com offline = 0, média W das leituras com potência, nº de leituras)."""
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT AVG(CASE WHEN online = 1 THEN COALESCE(hashrate_ths, 0) ELSE 0 END), "
+                "AVG(CASE WHEN online = 1 THEN power_w END), COUNT(*) FROM miner_readings "
+                "WHERE miner_id = ? AND ts >= ?", (miner_id, since)).fetchone()
+        return (row[0], row[1], row[2]) if row and row[2] else (None, None, 0)
+
+    async def worker_mean(self, pool_id: str, worker: str, since: float):
+        return await asyncio.to_thread(self._worker_mean, pool_id, worker, since)
+
+    async def miner_means(self, miner_id: str, since: float):
+        return await asyncio.to_thread(self._miner_means, miner_id, since)
+
     async def worker_run(self, pool_id: str, worker: str, since: float, gap_s: float):
         return await asyncio.to_thread(self._worker_run, pool_id, worker, since, gap_s)
 

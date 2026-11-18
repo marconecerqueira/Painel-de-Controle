@@ -28,7 +28,7 @@
     --pcb: #0e3a2c; --pcb-edge: #1d5442; --silk: #e8f1ec; --silk-2: #a9c3b6; --slot: rgba(232,241,236,.06);
     --good: #0ca30c; --good-text: #006300; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
     --led-good: #3ee07a; --led-warn: #ffc23d; --led-bad: #ff5a55;
-    --accent: #2a78d6;
+    --accent: #2a78d6; --loss-text: #b3261e;
     --text: "Barlow", -apple-system, "Segoe UI", system-ui, sans-serif;
     --cond: "Barlow Semi Condensed", "Barlow", -apple-system, system-ui, sans-serif;
   }
@@ -37,7 +37,7 @@
       --page: #0b1110; --surface: #121a17; --ink: #e4ebe7; --ink-2: #a6b4ad; --muted: #7a8a82;
       --hair: #22302a; --track: #1d2924; --ring: rgba(228,235,231,.10);
       --pcb: #0a2c21; --pcb-edge: #1a4536;
-      --good-text: #0ca30c; --accent: #3987e5;
+      --good-text: #0ca30c; --accent: #3987e5; --loss-text: #ff7b72;
     }
   }
   * { box-sizing: border-box; }
@@ -148,6 +148,9 @@
   .rent-head b { font: 600 16px var(--cond); }
   .rent-head span { font-size: 13px; color: var(--ink-2); }
   .rent .metrics { margin-top: 10px; }
+  .fin { background: color-mix(in srgb, var(--good) 4%, var(--surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--good) 16%, var(--hair)); }
+  .v.gain { color: var(--good-text); }
+  .v.loss { color: var(--loss-text); }
 
   table { width: 100%; border-collapse: collapse; margin-top: 12px; font-variant-numeric: tabular-nums; }
   th { text-align: left; color: var(--muted); font-weight: 500; font-size: 12.5px; padding: 4px 6px; border-bottom: 1px solid var(--hair); }
@@ -411,6 +414,31 @@ function rentalBlock(r) {
   </div>`;
 }
 
+const eurSigned = v => v == null ? "—" : (v > 0 ? "+" : v < 0 ? "−" : "") + eur(Math.abs(v));
+const kwh = v => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 3 });
+function moneyMetric(k, v, sub) {
+  const cls = v == null ? "" : v < 0 ? "loss" : v > 0 ? "gain" : "";
+  return `<div class="metric"><div class="k">${k}</div><div class="v ${cls}">${eurSigned(v)}</div>${sub ? `<div class="sub">${sub}</div>` : ""}</div>`;
+}
+function financeBlock(f) {
+  const energySub = f.energy_basis === "fixo" ? "taxa fixa mensal"
+    : f.kwh_day != null ? `${nf(f.power_w, 0)} W ${esc(f.power_source || "")}, ${nf(f.kwh_day, 1)} kWh/dia` : "";
+  const revSub = f.avg_ths != null ? `${hrText(f.avg_ths)}, ${esc(f.avg_source)}${f.fee_pct ? `, taxa ${nf(f.fee_pct, 1)}%` : ""}` : "";
+  const expected = f.expected_revenue_eur_day != null && f.avg_ths != null && f.avg_ths < f.expected_ths * 0.9
+    ? `<div class="card-sub" style="margin-top:8px">Com os ${nf(f.expected_ths, 0)} TH/s esperados: ${eur(f.expected_revenue_eur_day)}/dia de receita${f.expected_profit_eur_day != null ? `, resultado ${eurSigned(f.expected_profit_eur_day)}/dia` : ""}.</div>` : "";
+  return `<div class="rent fin" aria-label="Financeiro da máquina">
+    <div class="rent-head"><b>Financeiro</b><span>por dia, pelo valor esperado (sem sorte)</span></div>
+    <div class="metrics">
+      ${metric("Receita", f.revenue_eur_day != null ? `${eur(f.revenue_eur_day)}<div class="sub">${revSub}</div>` : "—")}
+      ${metric("Energia", f.energy_eur_day != null ? `${eur(f.energy_eur_day)}<div class="sub">${energySub}</div>` : "—")}
+      ${moneyMetric("Resultado", f.profit_eur_day, f.profit_eur_month != null ? `${eurSigned(f.profit_eur_month)} por mês` : "")}
+      ${f.breakeven_eur_kwh != null ? metric("Empata com energia a", `${kwh(f.breakeven_eur_kwh)} <small>€/kWh</small>`) : ""}
+    </div>
+    ${expected}
+    ${f.note ? `<div class="err">${esc(f.note)}</div>` : ""}
+  </div>`;
+}
+
 function minerCard(m) {
   const L = m.local, P = m.pool_worker;
   const reasons = m.reasons.length && !["online", "idle"].includes(m.status)
@@ -435,6 +463,7 @@ function minerCard(m) {
       <dt>Melhor dificuldade</dt><dd>${compact(L.best_diff ?? P?.best_diff)}</dd>
       ${L.firmware ? `<dt>Firmware</dt><dd>${esc(L.firmware)}</dd>` : ""}
     </dl>`;
+    if (m.finance) body += financeBlock(m.finance);
   } else if (m.type === "pool_only" || m.type === "rental") {
     body = `<div class="metrics">
       ${metric("Hashrate na pool", P ? hr(P.hashrate_ths) : "—")}
@@ -443,7 +472,7 @@ function minerCard(m) {
       ${metric("Melhor dificuldade", compact(P?.best_diff))}
     </div>
     <dl class="facts"><dt>Worker</dt><dd>${esc(m.worker)}</dd><dt>Dados vindos da pool</dt><dd>${esc(POOL_LABEL[m.pool] || m.pool)}</dd></dl>
-    ${m.rental ? rentalBlock(m.rental) : ""}`;
+    ${m.rental ? rentalBlock(m.rental) : ""}${m.finance ? financeBlock(m.finance) : ""}`;
   }
   const tags = [TYPE_LABEL[m.type], L?.model, m.coin === "BCH" ? "Bitcoin Cash" : "", P?.mode === "solo" ? "Solo" : P?.mode]
     .filter(Boolean).map(t => `<span class="tag">${esc(t)}</span>`).join("");
@@ -456,7 +485,8 @@ function minerCard(m) {
   </article>`;
 }
 
-let workerOwner = {};                 // "pool|worker" -> nome da máquina
+let workerOwner = {};
+let btcEur = null;                    // cotação do BTC em euros (mempool.space)                 // "pool|worker" -> nome da máquina
 function poolCard(p) {
   const name = POOL_LABEL[p.id] || p.id;
   if (p.ok == null) return `<article class="card"><div class="card-title">${esc(name)}</div><div class="card-sub">aguardando…</div></article>`;
@@ -468,7 +498,7 @@ function poolCard(p) {
   const extra = p.type === "defisurfers" ? `
       ${metric("Hashrate real (shares)", hr(p.hashrate_real_ths))}
       ${metric("Sua fatia PPLNS", p.pplns_percent != null ? `${nf(p.pplns_percent, 2)} <small>%</small>` : "—")}
-      ${metric("Saldo / pago", `${sats(p.balance_sats)} <small>/ ${sats(p.paid_sats)}</small>`)}
+      ${metric("Saldo / pago", `${sats(p.balance_sats)} <small>/ ${sats(p.paid_sats)}</small>${btcEur && (p.balance_sats != null || p.paid_sats != null) ? `<div class="sub">${eur((p.balance_sats || 0) / 1e8 * btcEur)} / ${eur((p.paid_sats || 0) / 1e8 * btcEur)}</div>` : ""}`)}
       ${metric("Hashrate da pool", hr(p.pool_hashrate_ths))}
       ${metric("Blocos achados", p.blocks_found ?? "—")}`
     : p.type === "hashcommander" ? `
@@ -502,7 +532,8 @@ function totalsHtml(t) {
   const eff = t.power_w && t.hashrate_ths ? t.power_w / t.hashrate_ths : null;
   const box = (k, v, u) => `<div><div class="k">${k}</div><div class="v">${v}${u ? `<small>${u}</small>` : ""}</div></div>`;
   return box("Hashrate total", hv, hu) + box("Máquinas ativas", t.online, `de ${t.total}`)
-    + (t.power_w ? box("Potência", nf(t.power_w, 0), "W") : "") + (eff ? box("Eficiência", nf(eff, 1), "J/TH") : "");
+    + (t.power_w ? box("Potência", nf(t.power_w, 0), "W") : "") + (eff ? box("Eficiência", nf(eff, 1), "J/TH") : "")
+    + (t.finance?.profit_eur_day != null ? `<div title="Receita esperada ${eur(t.finance.revenue_eur_day)} − energia ${eur(t.finance.energy_eur_day)} por dia${t.finance.missing_power.length ? ` (sem custo de energia: ${esc(t.finance.missing_power.join(", "))})` : ""}"><div class="k">Resultado/dia</div><div class="v">${eurSigned(t.finance.profit_eur_day)}</div></div>` : "");
 }
 function bayHtml(m) {
   const P = m.pool_worker, L = m.local, now = Date.now() / 1000;
@@ -575,6 +606,7 @@ async function refresh() {
     led.classList.remove("blink"); void led.offsetWidth; led.classList.add("blink");
     POOL_LABEL = Object.fromEntries(s.pools.map(p => [p.id, { defisurfers: "pool.defisurfers.xyz", parasite: "Parasite Pool", hashcommander: "Hash Commander (BCH)" }[p.type] || p.id]));
     workerOwner = Object.fromEntries(s.miners.filter(m => m.pool && m.worker).map(m => [m.pool + "|" + m.worker, m.name]));
+    btcEur = s.market?.btc_eur ?? null;
     document.getElementById("totals").innerHTML = totalsHtml(s.totals);
     const visible = s.miners.filter(m => !m.hidden), hidden = s.miners.filter(m => m.hidden);
     hiddenIds = new Set(hidden.map(m => m.id));

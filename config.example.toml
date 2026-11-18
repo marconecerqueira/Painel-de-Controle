@@ -7,6 +7,9 @@ port = 8080
 db_path = "minerador.db"
 retention_days = 30  # leituras brutas mais antigas são apagadas
 
+[finance]
+energy_eur_kwh = 0.14        # tarifa de energia do hosting (€/kWh); use ponto, não vírgula
+
 [intervals]          # segundos
 local = 15           # consulta direta às máquinas (LuxOS / AxeOS)
 pools = 60           # consulta às APIs das pools
@@ -22,6 +25,8 @@ pool = "defisurfers"         # id de uma entrada em [pools.*]
 # worker = "s19"             # opcional: se omitido, é deduzido do usuário stratum "endereco.worker"
 expected_ths = 140           # opcional: usado no alerta de hashrate baixo
 temp_max_c = 80
+power_w = 3010               # opcional: consumo nominal, usado quando a máquina não informa a potência
+# energy_eur_month = 90      # opcional: taxa fixa de energia por mês (substitui a tarifa por kWh)
 
 [[miners]]
 id = "bitaxe"
@@ -44,6 +49,7 @@ worker = "nerdminer"         # nome do worker usado no stratum (endereco.<worker
 type = "defisurfers"
 address = "bc1q_SEU_ENDERECO"
 base_url = "https://pool.defisurfers.xyz"
+# fee_pct = 1.5               # opcional: taxa da pool (%), descontada da receita esperada
 
 [pools.parasite]
 type = "parasite"

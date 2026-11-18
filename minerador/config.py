@@ -35,6 +35,9 @@ class MinerConfig:
     cost_btc: float | None = None
     rental_hours: float | None = None
     rental_start: float | None = None       # epoch; None = detectado pelo painel
+    # máquina própria (Fase 3): consumo nominal (vale quando a máquina não informa) ou taxa fixa
+    power_w: float | None = None
+    energy_eur_month: float | None = None
 
 
 @dataclass
@@ -43,6 +46,7 @@ class PoolConfig:
     type: str
     address: str
     base_url: str
+    fee_pct: float | None = None            # taxa da pool; None = a da cotação (0 no BTC)
 
 
 @dataclass
@@ -60,14 +64,16 @@ class Config:
     pools: dict[str, PoolConfig] = field(default_factory=dict)
     mempool_url: str = "https://mempool.space"
     block_pools: list[str] = field(default_factory=list)  # slugs extras no filtro "Minhas pools"
+    energy_eur_kwh: float | None = None     # [finance]: tarifa de energia
 
 
-def _positive(m: dict, key: str, mid: str) -> float | None:
+def _positive(m: dict, key: str, mid: str, where: str | None = None) -> float | None:
     v = m.get(key)
     if v is None:
         return None
     if isinstance(v, bool) or not isinstance(v, (int, float)) or v <= 0:
-        raise ConfigError(f"máquina '{mid}': {key} deve ser um número maior que zero")
+        raise ConfigError(f"{where or f'máquina {mid!r}'}: {key} deve ser um número maior que zero "
+                          "(use ponto como separador decimal, ex.: 0.14)")
     return float(v)
 
 
@@ -104,8 +110,13 @@ def parse_config(raw: dict, base_dir: Path | None = None) -> Config:
             raise ConfigError(f"pool '{pid}': falta 'address'")
         if not p.get("base_url"):
             raise ConfigError(f"pool '{pid}': falta 'base_url'")
+        fee = p.get("fee_pct")
+        if fee is not None and (isinstance(fee, bool) or not isinstance(fee, (int, float))
+                                or not 0 <= fee < 100):
+            raise ConfigError(f"pool '{pid}': fee_pct deve ser um número de 0 a 100")
         pools[pid] = PoolConfig(id=pid, type=ptype, address=p["address"].strip(),
-                                base_url=p["base_url"].rstrip("/"))
+                                base_url=p["base_url"].rstrip("/"),
+                                fee_pct=float(fee) if fee is not None else None)
 
     miners: list[MinerConfig] = []
     seen: set[str] = set()
@@ -139,6 +150,8 @@ def parse_config(raw: dict, base_dir: Path | None = None) -> Config:
             cost_btc=_positive(m, "cost_btc", mid),
             rental_hours=_positive(m, "rental_hours", mid),
             rental_start=_parse_start(m.get("rental_start"), mid),
+            power_w=_positive(m, "power_w", mid),
+            energy_eur_month=_positive(m, "energy_eur_month", mid),
         ))
 
     db_path = server.get("db_path", "minerador.db")
@@ -167,6 +180,8 @@ def parse_config(raw: dict, base_dir: Path | None = None) -> Config:
             isinstance(x, str) and re.fullmatch(r"[a-z0-9-]{1,40}", x) for x in block_pools):
         raise ConfigError('[blocks] my_pools deve ser uma lista de slugs do mempool, ex.: ["parasite"]')
 
+    energy = _positive(raw.get("finance", {}), "energy_eur_kwh", "", "[finance]")
+
     return Config(
         host=server.get("host", "127.0.0.1"),
         port=int(server.get("port", 8080)),
@@ -181,4 +196,5 @@ def parse_config(raw: dict, base_dir: Path | None = None) -> Config:
         pools=pools,
         mempool_url=mempool_url,
         block_pools=block_pools,
+        energy_eur_kwh=energy,
     )

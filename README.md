@@ -50,7 +50,7 @@ deploy/              serviço systemd
 - [x] Fase 2a: gráfico de hashrate (24h · 3d · 7d · 30d)
 - [x] Fase 2b: alertas no Telegram ([docs/alertas-telegram.md](docs/alertas-telegram.md))
 - [x] Fase 2c: blocos encontrados via mempool.space, com filtros (Rede · Minhas pools · Solo e pequenas · qualquer pool)
-- [~] Fase 3: financeiro
+- [x] Fase 3: financeiro
   - [x] aluguéis de hashrate: custo × valor esperado, chance de bloco no solo, preço pago × hashprice
-  - [ ] máquinas próprias: receita recebida × custo de energia
+  - [x] máquinas próprias: receita esperada (hashrate médio de 24 h) × custo de energia (`[finance] energy_eur_kwh`, `power_w`)
 - [ ] Fase 4: controle remoto (reiniciar, perfil de potência, dormir/acordar) e app de barra de menu no Mac

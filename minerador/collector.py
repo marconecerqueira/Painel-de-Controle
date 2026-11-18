@@ -12,7 +12,7 @@ import httpx
 from .config import Config, MinerConfig
 from .alerts import AlertEngine
 from .db import Database
-from .finance import Market, compute_rental
+from .finance import Market, compute_own, compute_rental
 from .models import LocalReading, PoolReading, PoolWorker
 from .sources import axeos, defisurfers, hashcommander, luxos, parasite
 
@@ -55,6 +55,8 @@ class Collector:
         self._chart_cache: dict[tuple[str, str], tuple[float, list]] = {}
         self.market = Market(cfg.mempool_url)
         self.rentals: dict[str, dict] = {}                 # id da máquina -> resumo financeiro
+        self.own_finance: dict[str, dict] = {}             # id da máquina própria -> receita × energia
+        self.btc_market: dict | None = None
         self._worker_mode: dict[tuple[str, str], str] = {}  # (pool, worker) -> "solo" / "PPLNS"
         self.hidden: set[str] = db.hidden_miners() if db else set()   # cards fechados no painel
 
@@ -155,19 +157,54 @@ class Collector:
             await fn()
             await asyncio.sleep(max(1.0, interval - (time.monotonic() - started)))
 
+    async def _coin_market(self, pool_id: str | None, btc: dict | None) -> dict | None:
+        pool = self.cfg.pools.get(pool_id) if pool_id else None
+        if pool and pool.type == "hashcommander":
+            return await self.market.bch_hashcommander(self._client, pool.base_url)
+        return btc
+
     async def finance_once(self) -> None:
-        """Recalcula o financeiro dos aluguéis com cost_btc e rental_hours no config."""
-        rentals = [m for m in self.cfg.miners if m.type == "rental" and m.cost_btc and m.rental_hours]
+        """Recalcula o financeiro: máquinas próprias e aluguéis com cost_btc e rental_hours."""
         # espera a 1ª leitura das pools: é ela que diz o modo (solo/PPLNS) de cada worker
-        if not rentals or self._client is None or self.db is None or not self._pools_ready:
+        if self._client is None or self.db is None or not self._pools_ready:
             return
         now = time.time()
-        btc = await self.market.btc(self._client)
+        btc = self.btc_market = await self.market.btc(self._client)
+        await self._own_finance(btc, now)
+        await self._rentals_finance(btc, now)
+
+    async def _own_finance(self, btc: dict | None, now: float) -> None:
+        since = now - 86400
+        for m in self.cfg.miners:
+            if m.type == "rental":
+                continue
+            ts, local = self.local.get(m.id, (None, None))
+            power, source = None, None
+            if m.type in POOL_SIDE_TYPES:
+                avg, n = await self.db.worker_mean(m.pool, m.worker, since) if m.pool else (None, 0)
+                pw = self._pool_worker(m, None, self._fresh_pool(m.pool, now))
+                current = pw.hashrate_ths if pw and pw.online else None
+            else:
+                avg, power, n = await self.db.miner_means(m.id, since)
+                current = local.hashrate_ths if local and local.online else None
+                if power is not None:
+                    source = "estimado pelo firmware" if local and local.power_measured is False else "medido"
+            if power is None and m.power_w:
+                power, source = m.power_w, "nominal (config)"
+            market = await self._coin_market(m.pool, btc)
+            pool = self.cfg.pools.get(m.pool) if m.pool else None
+            fee = pool.fee_pct if pool and pool.fee_pct is not None else (market or {}).get("fee_pct", 0.0)
+            self.own_finance[m.id] = compute_own(
+                avg_ths=avg, avg_samples=n, current_ths=current, power_w=power, power_source=source,
+                tariff_eur_kwh=self.cfg.energy_eur_kwh, fixed_eur_month=m.energy_eur_month,
+                market=market, fee_pct=fee, expected_ths=m.expected_ths)
+
+    async def _rentals_finance(self, btc: dict | None, now: float) -> None:
+        rentals = [m for m in self.cfg.miners if m.type == "rental" and m.cost_btc and m.rental_hours]
         gap = max(900.0, 3 * self.cfg.pool_interval)
         for m in rentals:
             pool = self.cfg.pools[m.pool]
-            coin = (await self.market.bch_hashcommander(self._client, pool.base_url)
-                    if pool.type == "hashcommander" else btc)
+            coin = await self._coin_market(m.pool, btc)
             run = await self.db.worker_run(m.pool, m.worker, now - 7 * 86400, gap)
             start, source = m.rental_start, "config"
             if start is None and run is not None:
@@ -295,6 +332,7 @@ class Collector:
                 "local": asdict(local) if local else None, "local_at": ts,
                 "pool_worker": asdict(pw) if pw else None,
                 "rental": self.rentals.get(m.id),
+                "finance": self.own_finance.get(m.id),
                 "hidden": m.id in self.hidden,
             })
 
@@ -320,8 +358,24 @@ class Collector:
             "pools": pools,
             "alerts": self.alerts.summary() if self.alerts else None,
             "totals": {"hashrate_ths": tot_hash, "power_w": tot_power,
-                       "online": online, "total": total},
+                       "online": online, "total": total, "finance": self._finance_totals()},
+            "market": {"btc_eur": self.btc_market["price_eur"]} if self.btc_market else None,
         }
+
+    def _finance_totals(self) -> dict | None:
+        """Soma das máquinas próprias; missing_power = máquinas sem custo de energia conhecido."""
+        rows = [(m, self.own_finance[m.id]) for m in self.cfg.miners if m.id in self.own_finance]
+        if not rows:
+            return None
+        def total(key: str) -> float | None:
+            vals = [f[key] for _, f in rows if f[key] is not None]
+            return sum(vals) if vals else None
+        out = {k: total(k) for k in ("energy_eur_day", "revenue_eur_day")}
+        out["missing_power"] = [m.name for m, f in rows if f["energy_eur_day"] is None]
+        complete = out["energy_eur_day"] is not None and out["revenue_eur_day"] is not None
+        out["profit_eur_day"] = out["revenue_eur_day"] - out["energy_eur_day"] if complete else None
+        out["profit_eur_month"] = out["profit_eur_day"] * 30 if complete else None
+        return out
 
     # ------------------------------------------------------------------ histórico
     async def _pool_total(self, pool_id: str, range_: str, since: float, bucket_s: int) -> list | None:

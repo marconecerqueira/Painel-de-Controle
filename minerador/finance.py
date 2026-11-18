@@ -1,6 +1,8 @@
-"""Financeiro dos aluguéis de hashrate (Fase 3, parte 1).
+"""Financeiro (Fase 3): máquinas próprias e aluguéis de hashrate.
 
-Para cada máquina type="rental" com cost_btc e rental_hours no config:
+Máquinas próprias (compute_own): receita esperada pelo hashrate médio de 24 h × custo de energia.
+
+Aluguéis — para cada máquina type="rental" com cost_btc e rental_hours no config:
   - período do aluguel (início do config ou detectado pelas leituras da pool);
   - hashrate médio entregue (leituras gravadas pelo painel);
   - valor esperado: hashrate / hashrate da rede × blocos por dia × recompensa × (1 − taxa);
@@ -83,6 +85,58 @@ class Market:
                     "fee_pct": float(parse_number(e.get("taxa_pct")) or 0),
                     "solo_fee_pct": float(parse_number(e.get("taxa_solo_pct")) or 0)}
         return await self._cached(f"bch:{base_url}", fetch)
+
+
+DAYS_PER_MONTH = 30
+
+
+def compute_own(*, avg_ths: float | None, avg_samples: int, current_ths: float | None,
+                power_w: float | None, power_source: str | None, tariff_eur_kwh: float | None,
+                fixed_eur_month: float | None, market: dict | None, fee_pct: float,
+                expected_ths: float | None) -> dict:
+    """Receita esperada × custo de energia de uma máquina própria, por dia (função pura).
+
+    Receita = hashrate × hashprice × (1 − taxa da pool): o valor estatístico, sem sorte.
+    Energia = potência × 24 h × tarifa, ou a taxa fixa mensal ÷ 30.
+    """
+    ths = avg_ths if avg_samples else current_ths
+    out: dict = {"avg_ths": ths,
+                 "avg_source": "média das últimas 24 h" if avg_samples else "hashrate atual",
+                 "power_w": power_w, "power_source": power_source, "fee_pct": fee_pct,
+                 "coin": market["coin"] if market else None,
+                 "kwh_day": None, "energy_eur_day": None, "energy_basis": None,
+                 "revenue_coin_day": None, "revenue_eur_day": None,
+                 "profit_eur_day": None, "profit_eur_month": None, "note": None}
+
+    if fixed_eur_month:
+        out.update(energy_basis="fixo", energy_eur_day=fixed_eur_month / DAYS_PER_MONTH)
+    elif power_w is None:
+        out["note"] = "informe power_w (consumo em W) no config.toml para calcular o custo de energia"
+    elif not tariff_eur_kwh:
+        out["note"] = "informe energy_eur_kwh em [finance] no config.toml para calcular o custo de energia"
+    else:
+        out["kwh_day"] = power_w * 24 / 1000
+        out.update(energy_basis="tarifa", energy_eur_day=out["kwh_day"] * tariff_eur_kwh)
+
+    if not market:
+        return out
+
+    def revenue(t: float) -> float:
+        return t * hashprice(market["difficulty"], market["reward"]) * (1 - fee_pct / 100)
+
+    out["revenue_coin_day"] = revenue(ths or 0.0)
+    out["revenue_eur_day"] = out["revenue_coin_day"] * market["price_eur"]
+    if out["energy_eur_day"] is not None:
+        out["profit_eur_day"] = out["revenue_eur_day"] - out["energy_eur_day"]
+        out["profit_eur_month"] = out["profit_eur_day"] * DAYS_PER_MONTH
+    if out["kwh_day"]:
+        out["breakeven_eur_kwh"] = out["revenue_eur_day"] / out["kwh_day"]
+    if expected_ths:
+        out["expected_ths"] = expected_ths
+        out["expected_revenue_eur_day"] = revenue(expected_ths) * market["price_eur"]
+        if out["energy_eur_day"] is not None:
+            out["expected_profit_eur_day"] = out["expected_revenue_eur_day"] - out["energy_eur_day"]
+    return out
 
 
 def compute_rental(*, cost_btc: float, hours: float, start: float | None, start_source: str,
