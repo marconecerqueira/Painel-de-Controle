@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from .alerts import AlertEngine, TelegramNotifier
 from .blocks import BlockFeed
 from .collector import Collector
+from .control import ControlError
 from .config import Config
 from .db import Database
 
@@ -23,6 +24,11 @@ STATIC_DIR = Path(__file__).parent / "static"
 class AckBody(BaseModel):
     key: str | None = None      # None = todos os alertas ativos
     undo: bool = False          # True = volta a mostrar no aviso
+
+
+class ControlBody(BaseModel):
+    action: str
+    value: str | dict | None = None   # perfil (LuxOS) ou {frequency, coreVoltage} (AxeOS)
 
 
 class EventBody(BaseModel):
@@ -102,6 +108,31 @@ def create_app(cfg: Config, start_collector: bool = True) -> FastAPI:
         except KeyError:
             raise HTTPException(status_code=404, detail="máquina não encontrada") from None
         return {"ok": True}
+
+    # ------------------------------------------------------------------ controle remoto (Fase 4)
+    @app.get("/api/miners/{miner_id}/control")
+    async def control_options(miner_id: str) -> dict:
+        try:
+            return await collector.control_options(miner_id)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="máquina não encontrada") from None
+        except ValueError as e:        # sem controle (só pela pool)
+            raise HTTPException(status_code=400, detail=str(e)) from e
+        except ControlError as e:      # máquina não respondeu
+            raise HTTPException(status_code=502, detail=str(e)) from e
+
+    @app.post("/api/miners/{miner_id}/control")
+    async def control_run(miner_id: str, body: ControlBody, request: Request) -> dict:
+        _guard(request)
+        try:
+            msg = await collector.control(miner_id, body.action, body.value)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="máquina não encontrada") from None
+        except ControlError as e:
+            raise HTTPException(status_code=409, detail=str(e)) from e
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
+        return {"ok": True, "message": msg}
 
     def _engine() -> AlertEngine:
         if collector.alerts is None:

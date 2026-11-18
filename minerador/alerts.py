@@ -84,6 +84,12 @@ def conditions(snap: dict, cfg: AlertSettings) -> tuple[list[Condition], set[str
             unknown.add(mid)
             continue
 
+        if status == "sleeping":          # dormindo de propósito: sem alerta de hashrate/shares
+            out.append(Condition(f"{mid}:sleeping", mid, f"{name}: dormindo",
+                                 "A máquina foi posta para dormir e não está minerando.",
+                                 0, f"{name}: acordou", kind="info", clear_s=cfg.clear_s))
+            continue
+
         if m["type"] == "rental":
             if status in ("online", "warning") and P:
                 out.append(Condition(
@@ -279,6 +285,17 @@ class AlertEngine:
                 await self._db("log_alert_event", ev)
         # se o envio falhou, os disparos ficam pendentes e são tentados de novo no próximo ciclo
         return lines
+
+    async def log_action(self, title: str, detail: str) -> None:
+        """Comando de controle enviado pelo painel: entra no histórico e vai para o Telegram."""
+        now = time.time()
+        ev = {"ts": now, "key": f"action:{now:.3f}", "event": "action", "kind": "action",
+              "title": title, "detail": detail}
+        self.recent.insert(0, ev)
+        del self.recent[30:]
+        await self._db("log_alert_event", ev)
+        if self.notifier is not None:
+            await self.notifier.send(f"🛠 <b>{html.escape(title)}</b>\n{html.escape(detail)}")
 
     # ------------------------------------------------------------------ ações do painel
     async def ack(self, key: str | None = None, acked: bool = True) -> int:

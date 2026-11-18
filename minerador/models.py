@@ -44,6 +44,11 @@ class LocalReading:
     best_diff: float | None = None
     firmware: str | None = None
     model: str | None = None
+    # controle (Fase 4)
+    profile: str | None = None              # LuxOS: perfil de potência atual
+    sleeping: bool | None = None            # LuxOS: dormindo (curtail sleep)
+    frequency_mhz: float | None = None      # AxeOS
+    core_voltage_mv: float | None = None    # AxeOS
     warnings: list[str] = field(default_factory=list)
 
 

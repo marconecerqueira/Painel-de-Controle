@@ -53,4 +53,6 @@ deploy/              serviço systemd
 - [x] Fase 3: financeiro
   - [x] aluguéis de hashrate: custo × valor esperado, chance de bloco no solo, preço pago × hashprice
   - [x] máquinas próprias: receita esperada (hashrate médio de 24 h) × custo de energia (`[finance] energy_eur_kwh`, `power_w`)
-- [ ] Fase 4: controle remoto (reiniciar, perfil de potência, dormir/acordar) e app de barra de menu no Mac
+- [~] Fase 4: controle remoto e app de barra de menu no Mac
+  - [x] controle remoto pelo painel (botão "Controle" no card): S19j XP/LuxOS — perfil de potência, dormir/acordar, reiniciar mineração/máquina; Bitaxe/AxeOS — frequência e voltagem (só valores seguros do firmware) e reiniciar. Confirmação antes de cada ação; cada comando entra no histórico e no Telegram. Testado no simulador; precisa do painel na rede das máquinas (Pi/PC)
+  - [ ] app de barra de menu (SwiftUI `MenuBarExtra`)

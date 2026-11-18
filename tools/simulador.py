@@ -31,16 +31,84 @@ def iso(ts: float) -> str:
 
 
 # ------------------------------------------------------------------ LuxOS (S19j XP)
-def luxos_response(cmd: str) -> dict:
+# perfis: nome, passo, TH/s, W
+LUX_PROFILES = [("150MHz", -14, 34, 820), ("400MHz", -4, 113, 2350), ("450MHz", -2, 127, 2650),
+                ("default", 0, 141, 3010), ("540MHz", 2, 152, 3420)]
+LUX: dict = {}
+AXE: dict = {}
+
+
+def reset_state() -> None:
+    """Estado do controle remoto simulado (perfil, sono, sessão, comandos recebidos)."""
+    LUX.clear()
+    LUX.update(profile="default", sleep=False, session="", log=[])
+    AXE.clear()
+    AXE.update(frequency=525, coreVoltage=1150, log=[])
+
+
+reset_state()
+
+
+def _lux_profile() -> tuple:
+    return next(p for p in LUX_PROFILES if p[0] == LUX["profile"])
+
+
+def luxos_control(cmd: str, param: str) -> dict:
+    def st(code: int, msg: str, ok: bool = True) -> list:
+        return [{"STATUS": "S" if ok else "E", "When": int(time.time()), "Code": code, "Msg": msg}]
+    args = [a for a in param.split(",")] if param else []
+    if cmd == "session":
+        return {"STATUS": st(319, "Session information"), "SESSION": [{"SessionID": LUX["session"]}]}
+    if cmd == "logon":
+        if LUX["session"]:
+            return {"STATUS": st(315, "Another session is active", ok=False)}
+        LUX["session"] = "sim%05d" % random.randint(0, 99999)
+        return {"STATUS": st(316, "Session created"), "SESSION": [{"SessionID": LUX["session"]}]}
+    if cmd == "profiles":
+        return {"STATUS": st(323, "List profiles"), "PROFILES": [
+            {"Profile Name": n, "Step": str(s), "Hashrate": h, "Watts": w, "Frequency": 0, "Voltage": 0,
+             "IsDynamic": False, "IsTuned": False, "CanRestore": False, "HasOverrides": False}
+            for n, s, h, w in LUX_PROFILES]}
+    if cmd == "config":
+        return {"STATUS": st(33, "LUXminer config"), "CONFIG": [{
+            "Profile": LUX["profile"], "ProfileStep": str(_lux_profile()[1]),
+            "CurtailMode": "Sleep" if LUX["sleep"] else "None", "IsAtmEnabled": False}]}
+    # comandos que exigem sessão: o 1º parâmetro é o SessionID
+    if not args or not LUX["session"] or args[0] != LUX["session"]:
+        return {"STATUS": st(312, "Invalid session id", ok=False)}
+    LUX["log"].append(cmd)
+    if cmd == "logoff":
+        LUX["session"] = ""
+        return {"STATUS": st(317, "Session dropped")}
+    if cmd == "profileset":
+        if len(args) < 2 or not any(p[0] == args[1] for p in LUX_PROFILES):
+            return {"STATUS": st(322, "Invalid profile", ok=False)}
+        LUX["profile"] = args[1]
+        return {"STATUS": st(321, "Profile Set"), "PROFILE": [{"Board": 0, "Profile": args[1]}]}
+    if cmd == "curtail" and len(args) >= 2 and args[1] in ("sleep", "wakeup"):
+        LUX["sleep"] = args[1] == "sleep"
+        return {"STATUS": st(335, "Curtailment command sent"), "CURTAIL": [{"Action": args[1]}]}
+    if cmd in ("rebootdevice", "resetminer"):
+        LUX["session"] = ""            # reiniciar derruba a sessão
+        return {"STATUS": st(328 if cmd == "rebootdevice" else 329, "Rebooting device" if cmd == "rebootdevice" else "Restarting miner")}
+    return {"STATUS": st(14, "Invalid command", ok=False)}
+
+
+def luxos_response(cmd: str, param: str = "") -> dict:
+    if cmd in ("session", "logon", "logoff", "profiles", "config", "profileset", "curtail", "rebootdevice", "resetminer"):
+        return luxos_control(cmd, param)
     ok = [{"STATUS": "S", "When": int(time.time()), "Code": 11, "Msg": "Summary", "Description": "LUXminer 2026.10.1"}]
     up = int(time.time() - START) + 3 * 86400
+    _, _, ths, watts = _lux_profile()
+    if LUX["sleep"]:
+        ths, watts = 0, 45
     if cmd == "summary":
         return {"STATUS": ok, "SUMMARY": [{
-            "Elapsed": up, "GHS 5s": wobble(141000), "GHS 30m": wobble(140500, 0.01),
-            "GHS av": 140800.0, "Accepted": 48213 + up // 10, "Rejected": 31, "Stale": 2,
+            "Elapsed": up, "GHS 5s": wobble(ths * 1000) if ths else 0.0, "GHS 30m": wobble(ths * 1000 - 500, 0.01) if ths else 0.0,
+            "GHS av": ths * 1000 - 200 if ths else 0.0, "Accepted": 48213 + up // 10, "Rejected": 31, "Stale": 2,
             "Hardware Errors": 120, "Device Hardware%": 0.02, "Best Share": 2.1e11}], "id": 1}
     if cmd == "power":
-        return {"STATUS": ok, "POWER": [{"Watts": round(wobble(3010, 0.01)), "PSU": True}], "id": 1}
+        return {"STATUS": ok, "POWER": [{"Watts": round(wobble(watts, 0.01)), "PSU": True}], "id": 1}
     if cmd == "temps":
         return {"STATUS": ok, "TEMPS": [
             {"ID": i, "TEMP": i, "TopLeft": round(wobble(62)), "TopRight": round(wobble(66)),
@@ -59,8 +127,8 @@ def luxos_response(cmd: str) -> dict:
 async def handle_luxos(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
     try:
         raw = await asyncio.wait_for(reader.read(4096), 5)
-        cmd = json.loads(raw.decode()).get("command", "")
-        writer.write(json.dumps(luxos_response(cmd)).encode() + b"\x00")
+        req = json.loads(raw.decode())
+        writer.write(json.dumps(luxos_response(req.get("command", ""), str(req.get("parameter") or ""))).encode() + b"\x00")
         await writer.drain()
     except Exception:
         pass
@@ -84,8 +152,27 @@ def axeos_info():
         "bestDiff": 1.92e9, "uptimeSeconds": up, "stratumURL": "pool.defisurfers.xyz",
         "stratumPort": 2018, "stratumUser": f"{ADDR}.bitaxe", "ASICModel": "BM1370",
         "boardVersion": "601", "axeOSVersion": "v2.15.4", "overheat_mode": 0,
-        "isUsingFallbackStratum": 0,
+        "isUsingFallbackStratum": 0, "frequency": AXE["frequency"], "coreVoltage": AXE["coreVoltage"],
     }
+
+
+@app.get("/api/system/asic")
+def axeos_asic():
+    return {"ASICModel": "BM1370", "deviceModel": "Gamma", "defaultFrequency": 525, "defaultVoltage": 1150,
+            "frequencyOptions": [400, 490, 525, 550, 575, 600], "voltageOptions": [1000, 1060, 1100, 1150, 1200, 1250]}
+
+
+@app.patch("/api/system")
+def axeos_patch(body: dict):
+    AXE["log"].append("patch")
+    AXE.update({k: body[k] for k in ("frequency", "coreVoltage") if k in body})
+    return {}
+
+
+@app.post("/api/system/restart")
+def axeos_restart():
+    AXE["log"].append("restart")
+    return "System will restart shortly."
 
 
 @app.get("/defi/api/client/{addr}")

@@ -12,6 +12,7 @@ import httpx
 from .config import Config, MinerConfig
 from .alerts import AlertEngine
 from .db import Database
+from . import control as ctl
 from .finance import Market, compute_own, compute_rental
 from .models import LocalReading, PoolReading, PoolWorker
 from .sources import axeos, defisurfers, hashcommander, luxos, parasite
@@ -59,6 +60,7 @@ class Collector:
         self.btc_market: dict | None = None
         self._worker_mode: dict[tuple[str, str], str] = {}  # (pool, worker) -> "solo" / "PPLNS"
         self.hidden: set[str] = db.hidden_miners() if db else set()   # cards fechados no painel
+        self._control_locks: dict[str, asyncio.Lock] = {}   # um comando por máquina de cada vez
 
     @property
     def pool_grace_s(self) -> float:
@@ -137,6 +139,52 @@ class Collector:
         (self.hidden.add if hidden else self.hidden.discard)(miner_id)
         if self.db:
             await asyncio.to_thread(self.db.set_miner_hidden, miner_id, hidden)
+
+    # ------------------------------------------------------------------ controle remoto (Fase 4)
+    CONTROL_TYPES = ("luxos", "axeos")
+
+    def _controllable(self, miner_id: str) -> MinerConfig:
+        m = next((x for x in self.cfg.miners if x.id == miner_id), None)
+        if m is None:
+            raise KeyError(miner_id)
+        if m.type not in self.CONTROL_TYPES:
+            raise ValueError(f"{m.name}: sem controle remoto (o painel só lê os dados da pool)")
+        return m
+
+    async def control_options(self, miner_id: str) -> dict:
+        m = self._controllable(miner_id)
+        if m.type == "luxos":
+            return await ctl.luxos_options(m.host, m.port or 4028)
+        assert self._client is not None
+        return await ctl.axeos_options(self._client, m.host, m.port)
+
+    async def control(self, miner_id: str, action: str, value=None, refresh: bool = True) -> str:
+        """Executa o comando, registra no histórico (e no Telegram) e devolve a mensagem."""
+        m = self._controllable(miner_id)
+        lock = self._control_locks.setdefault(m.id, asyncio.Lock())
+        if lock.locked():
+            raise ctl.ControlError(f"{m.name}: já há um comando em andamento")
+        async with lock:
+            if m.type == "luxos":
+                await ctl.luxos_run(m.host, m.port or 4028, action, value)
+            else:
+                assert self._client is not None
+                await ctl.axeos_run(self._client, m.host, m.port, action, value)
+        what = ctl.LABELS.get(action, action)
+        if action == "profile":
+            detail = f"perfil {value}"
+        elif action == "tune":
+            detail = f"{value.get('frequency')} MHz, {value.get('coreVoltage')} mV"
+        else:
+            detail = ""
+        msg = f"{m.name}: comando enviado, {what}" + (f" ({detail})" if detail else "")
+        log.info("controle: %s", msg)
+        if self.alerts is not None:
+            await self.alerts.log_action(f"{m.name}: {what}", detail or "comando enviado pelo painel")
+        if refresh:   # nova leitura logo depois, para o painel mostrar o efeito
+            asyncio.get_running_loop().call_later(
+                4, lambda: asyncio.ensure_future(self._safe(self._poll_miner(m), m.id)))
+        return msg
 
     async def evaluate_alerts_once(self) -> None:
         # Só avalia com dados frescos de todas as fontes: evita "resolvido" falso logo após reiniciar.
@@ -289,6 +337,8 @@ class Collector:
             return "unknown", ["aguardando primeira leitura"]
         if not local.online:
             return "offline", [local.error or "sem resposta"]
+        if local.sleeping:
+            return "sleeping", ["dormindo: não minera até receber o comando de acordar"]
 
         reasons.extend(local.warnings)
         if m.temp_max_c and local.temp_max_c and local.temp_max_c >= m.temp_max_c:
@@ -313,7 +363,7 @@ class Collector:
             pw = self._pool_worker(m, local, self._fresh_pool(m.pool, now))
             pool_ok = self._pool_ok(m.pool, now)
             status, reasons = self._status(m, local, pw, pool_ok)
-            if status != "idle":          # aluguel sem contrato não conta como máquina
+            if status not in ("idle", "sleeping"):   # aluguel sem contrato / máquina dormindo
                 total += 1
             if status in ("online", "warning"):
                 online += 1
@@ -334,6 +384,7 @@ class Collector:
                 "rental": self.rentals.get(m.id),
                 "finance": self.own_finance.get(m.id),
                 "hidden": m.id in self.hidden,
+                "control": m.type in self.CONTROL_TYPES,
             })
 
         pools = []

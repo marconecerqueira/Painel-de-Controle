@@ -52,6 +52,8 @@ def parse(info: dict) -> LocalReading:
     r.pool_url = f"{url}:{port}" if url and port else url
     r.pool_user = info.get("stratumUser")
 
+    r.frequency_mhz = _num(info.get("frequency"))
+    r.core_voltage_mv = _num(info.get("coreVoltage"))
     r.firmware = info.get("axeOSVersion") or info.get("version")
     model = " ".join(str(x) for x in (info.get("ASICModel"), info.get("boardVersion")) if x)
     r.model = model or None

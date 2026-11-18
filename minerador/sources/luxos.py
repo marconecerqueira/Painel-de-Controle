@@ -65,7 +65,7 @@ def _num(v) -> float | None:
 
 def parse(summary: dict, pools: dict | None = None, power: dict | None = None,
           temps: dict | None = None, fans: dict | None = None,
-          version: dict | None = None) -> LocalReading:
+          version: dict | None = None, config: dict | None = None) -> LocalReading:
     """Converte as respostas brutas do LuxOS numa LocalReading. Funções auxiliares opcionais."""
     s = _first(summary, "SUMMARY")
     r = LocalReading(online=True)
@@ -132,6 +132,12 @@ def parse(summary: dict, pools: dict | None = None, power: dict | None = None,
             if not r.pool_alive:
                 r.warnings.append(f"pool {active.get('Status', '?')}")
 
+    if config:
+        c = _first(config, "CONFIG")
+        r.profile = c.get("Profile") or None
+        if "CurtailMode" in c:
+            r.sleeping = str(c.get("CurtailMode") or "").lower() == "sleep"
+
     if version:
         v = _first(version, "VERSION")
         r.firmware = v.get("LUXminer") or v.get("Miner") or v.get("CGMiner")
@@ -148,7 +154,7 @@ async def fetch(host: str, port: int = 4028, timeout: float = 5.0) -> LocalReadi
 
     extras: dict[str, dict | None] = {}
     warnings: list[str] = []
-    for name in ("pools", "power", "temps", "fans", "version"):
+    for name in ("pools", "power", "temps", "fans", "version", "config"):
         try:
             extras[name] = await command(host, port, name, timeout=timeout)
         except (OSError, asyncio.TimeoutError, LuxOSError) as e:
