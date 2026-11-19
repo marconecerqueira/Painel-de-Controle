@@ -117,8 +117,13 @@ def load_config(path: str | Path) -> Config:
     path = Path(path)
     if not path.exists():
         raise ConfigError(f"arquivo de configuração não encontrado: {path}")
-    with path.open("rb") as f:
-        raw = tomllib.load(f)
+    try:
+        # utf-8-sig: o Bloco de Notas do Windows pode salvar com BOM, que o tomllib recusa
+        raw = tomllib.loads(path.read_bytes().decode("utf-8-sig"))
+    except UnicodeDecodeError:
+        raise ConfigError(f"{path.name}: salve o arquivo como UTF-8") from None
+    except tomllib.TOMLDecodeError as e:
+        raise ConfigError(f"{path.name} com erro de digitação: {e}") from None
     return parse_config(raw, base_dir=path.parent)
 
 

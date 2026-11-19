@@ -2,7 +2,7 @@
 
 Painel de mineradores (pacote Python `minerador`).
 
-Painel para ver e controlar, de qualquer lugar, mineradores de Bitcoin que ficam num hosting de terceiros. O app roda num Raspberry Pi na rede das máquinas e é acessado pela Tailscale. Nada fica exposto na internet.
+Painel para ver e controlar, de qualquer lugar, mineradores de Bitcoin que ficam num hosting de terceiros. O app roda num Raspberry Pi ou num PC com Windows, na rede das máquinas, e é acessado pela Tailscale. Nada fica exposto na internet.
 
 | Máquina | Como é lida |
 |---|---|
@@ -14,7 +14,7 @@ Painel para ver e controlar, de qualquer lugar, mineradores de Bitcoin que ficam
 | Blocos encontrados (rede, suas pools, solo, qualquer pool) | mempool.space |
 
 * Design completo: [docs/especificacao.md](docs/especificacao.md)
-* Instalação: [docs/instalacao-pi.md](docs/instalacao-pi.md)
+* Instalação: [Raspberry Pi](docs/instalacao-pi.md) · [PC com Windows](docs/instalacao-windows.md)
 
 ## Testar no Mac sem hardware (simulador)
 
@@ -54,7 +54,7 @@ minerador/
   static/       painel web (um único index.html)
 tools/simulador.py   imita as APIs reais para teste
 macos/               app de barra de menu (SwiftUI) + build.sh
-deploy/              serviço systemd
+deploy/              serviço systemd (Pi) e scripts do Windows (deploy/windows)
 ```
 
 ## Roadmap
