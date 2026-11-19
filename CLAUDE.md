@@ -50,7 +50,13 @@ Todos os endpoints `POST` exigem o cabeçalho `X-Minerador: 1`, que funciona com
 - websocket `/api/v1/ws` com `track-mempool-block: 0`, recebendo deltas;
 - REST `/api/v1/statistics/2h`.
 
-O Python não tem cliente websocket. A base vem de `mempool_url`, e os bits de flags seguem `TransactionFlags` do mempool. O middleware em `app.py` força `Cache-Control: no-cache` em tudo que não é `/api/`, porque o Safari mostrava ícones antigos.
+O Python não tem cliente websocket. A base vem de `mempool_url`, e os bits de flags seguem `TransactionFlags` do mempool.
+
+O cartão **hora local e tempo**, por baixo do gráfico de hashrate, também roda só no navegador:
+- localização pelo GPS do aparelho; se a permissão for negada, aproximada pelo IP via BigDataCloud `reverse-geocode-client`;
+- tempo pela Open-Meteo, com códigos WMO → ícone SVG animado.
+
+Ambas as APIs são sem chave. O middleware em `app.py` força `Cache-Control: no-cache` em tudo que não é `/api/`, porque o Safari mostrava ícones antigos.
 
 **Mac:** `macos/PainelBarra.swift` é um app `MenuBarExtra` que consome a mesma API (padrão `http://127.0.0.1:8080`). Duas armadilhas conhecidas:
 - Evite concatenar `String` com ternários encadeados em Swift: o compilador trava por muitos minutos.

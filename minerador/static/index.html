@@ -227,6 +227,44 @@
   details.tbl summary { cursor: pointer; color: var(--accent); }
   details.tbl .scroll { max-height: 260px; overflow: auto; }
 
+  /* ---------------- hora local e tempo (Open-Meteo) */
+  .wx { margin-top: 12px; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1fr); gap: 16px 24px; align-items: center; padding: 18px 20px; }
+  .wx-time { font: 600 44px/1 var(--cond); font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+  .wx-time small { font-size: 22px; color: var(--muted); margin-left: 2px; }
+  .wx-date { margin-top: 6px; font-size: 15px; color: var(--ink-2); }
+  .wx-date::first-letter { text-transform: uppercase; }
+  .wx-place { display: flex; align-items: center; gap: 6px; margin-top: 6px; font: 600 15px var(--cond); }
+  .wx-place svg { width: 16px; height: 16px; flex: none; color: var(--good-text); }
+  .wx-now { display: flex; align-items: center; gap: 14px; }
+  .wx-icon { width: 76px; height: 76px; flex: none; }
+  .wx-icon svg { width: 100%; height: 100%; overflow: visible; }
+  .wx-temp { font: 600 44px/1 var(--cond); font-variant-numeric: tabular-nums; }
+  .wx-temp small { font-size: 22px; color: var(--muted); margin-left: 2px; }
+  .wx-desc { margin-top: 4px; font-size: 15px; color: var(--ink-2); }
+  .wx-stats { margin: 0; display: grid; gap: 8px; }
+  .wx-stats div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-bottom: 7px; border-bottom: 1px solid var(--hair); }
+  .wx-stats div:last-child { border-bottom: 0; padding-bottom: 0; }
+  .wx-stats dt { font-size: 13.5px; color: var(--muted); }
+  .wx-stats dd { margin: 0; font: 600 19px var(--cond); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .wx-stats dd small { font-size: 13px; color: var(--muted); font-weight: 500; }
+  .wx-note { grid-column: 1 / -1; font-size: 12px; color: var(--muted); margin-top: -6px; }
+  .wx-note:empty { display: none; }
+  /* ícones animados: sol gira, nuvem flutua, chuva/neve caem, raio pisca */
+  .wx-icon .sun-rays { transform-origin: 32px 32px; animation: wx-spin 24s linear infinite; }
+  .wx-icon .cloud { animation: wx-drift 6s ease-in-out infinite alternate; }
+  .wx-icon .drop { animation: wx-fall 1.1s linear infinite; }
+  .wx-icon .flake { animation: wx-fall 2.4s linear infinite; }
+  .wx-icon .bolt { animation: wx-flash 2.6s steps(1) infinite; }
+  .wx-icon .fogline { animation: wx-drift 4s ease-in-out infinite alternate; }
+  @keyframes wx-spin { to { transform: rotate(360deg); } }
+  @keyframes wx-drift { from { transform: translateX(-2px); } to { transform: translateX(3px); } }
+  @keyframes wx-fall { from { transform: translateY(-4px); opacity: 0; } 25% { opacity: 1; } to { transform: translateY(9px); opacity: 0; } }
+  @keyframes wx-flash { 0%, 60%, 70%, 100% { opacity: 1; } 62%, 68% { opacity: .15; } }
+  @media (prefers-reduced-motion: reduce) { .wx-icon * { animation: none !important; } }
+  @media (max-width: 860px) { .wx { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .wx-stats { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .wx-stats div { flex-direction: column; align-items: flex-start; gap: 2px; border-bottom: 0; padding-bottom: 0; } }
+  @media (max-width: 520px) { .wx { grid-template-columns: minmax(0, 1fr); } .wx-time, .wx-temp { font-size: 38px; } .wx-icon { width: 64px; height: 64px; } }
+
   /* ---------------- blocos */
   .blocks-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .blocks-top select { font: 500 14px var(--cond); color: var(--ink); background: var(--surface); border: 0; box-shadow: inset 0 0 0 1px var(--hair); border-radius: 9px; padding: 6px 10px; max-width: 100%; }
@@ -438,6 +476,24 @@
     <div class="chart-wrap" id="chart" tabindex="0" role="img" aria-label="Gráfico de hashrate"><div class="tip" id="tip"></div></div>
     <div class="chart-note" id="chart-note"></div>
     <details class="tbl"><summary>Ver como tabela</summary><div class="scroll" id="chart-table"></div></details>
+  </section>
+
+  <section class="card wx" aria-label="Hora local e tempo">
+    <div class="wx-clock">
+      <div class="wx-time" id="wx-time">--:--<small>:--</small></div>
+      <div class="wx-date" id="wx-date"></div>
+      <div class="wx-place"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 18s6-5.6 6-10.2A6 6 0 0 0 4 7.8C4 12.4 10 18 10 18Z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="10" cy="7.8" r="2.2" fill="currentColor"/></svg><span id="wx-place">Localizando…</span></div>
+    </div>
+    <div class="wx-now">
+      <div class="wx-icon" id="wx-icon" aria-hidden="true"></div>
+      <div><div class="wx-temp" id="wx-temp">--<small>°C</small></div><div class="wx-desc" id="wx-desc">Carregando o tempo…</div></div>
+    </div>
+    <dl class="wx-stats">
+      <div><dt>Sensação térmica</dt><dd id="wx-feel">— <small>°C</small></dd></div>
+      <div><dt>Vento</dt><dd id="wx-wind">— <small>km/h</small></dd></div>
+      <div><dt>Humidade</dt><dd id="wx-hum">— <small>%</small></dd></div>
+    </dl>
+    <div class="wx-note" id="wx-note"></div>
   </section>
 
   <h2>Máquinas</h2>
@@ -1057,6 +1113,102 @@ document.getElementById("ranges").addEventListener("click", ev => { if (ev.targe
 let resizeT; window.addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(drawChart, 120); });
 setRange(chartRange);
 setInterval(loadHistory, 60000);
+
+// ------------------------------------------------------------------ hora local e tempo
+// Localização: GPS do aparelho (o navegador pede permissão); se negar, aproximada pelo IP.
+// Cidade/país: BigDataCloud (reverse-geocode-client, sem chave). Tempo: Open-Meteo (sem chave).
+const WX_CODES = {
+  0: ["clear", "Céu limpo"], 1: ["partly", "Pouco nublado"], 2: ["partly", "Parcialmente nublado"], 3: ["cloudy", "Nublado"],
+  45: ["fog", "Nevoeiro"], 48: ["fog", "Nevoeiro com geada"],
+  51: ["drizzle", "Chuvisco fraco"], 53: ["drizzle", "Chuvisco"], 55: ["drizzle", "Chuvisco forte"], 56: ["drizzle", "Chuvisco gelado"], 57: ["drizzle", "Chuvisco gelado"],
+  61: ["rain", "Chuva fraca"], 63: ["rain", "Chuva"], 65: ["rain", "Chuva forte"], 66: ["rain", "Chuva gelada"], 67: ["rain", "Chuva gelada forte"],
+  71: ["snow", "Neve fraca"], 73: ["snow", "Neve"], 75: ["snow", "Neve forte"], 77: ["snow", "Grãos de neve"],
+  80: ["rain", "Aguaceiros fracos"], 81: ["rain", "Aguaceiros"], 82: ["rain", "Aguaceiros fortes"], 85: ["snow", "Aguaceiros de neve"], 86: ["snow", "Aguaceiros de neve fortes"],
+  95: ["thunder", "Trovoada"], 96: ["thunder", "Trovoada com granizo"], 99: ["thunder", "Trovoada com granizo forte"],
+};
+function wxIcon(kind, day) {
+  const cloud = (fill, tx = 0, ty = 0, s = 1) => `<g class="cloud"><path transform="translate(${tx} ${ty}) scale(${s})" fill="${fill}"
+    d="M19 50h28a10 10 0 0 0 1.5-19.9A14 14 0 0 0 21.6 27 11.5 11.5 0 0 0 19 50Z"/></g>`;
+  const sun = (cx, cy, r) => `<g><g class="sun-rays" style="transform-origin:${cx}px ${cy}px">${[0, 45, 90, 135, 180, 225, 270, 315].map(a =>
+    `<line x1="${cx}" y1="${cy - r - 5}" x2="${cx}" y2="${cy - r - 10}" stroke="#f5b82e" stroke-width="3.2" stroke-linecap="round" transform="rotate(${a} ${cx} ${cy})"/>`).join("")}</g>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="#f5b82e"/></g>`;
+  const moon = (cx, cy, r) => `<path fill="#c9d3e0" d="M${cx + r * .35} ${cy - r}a${r} ${r} 0 1 0 ${r * .65} ${r * 1.55}A${r * .8} ${r * .8} 0 0 1 ${cx + r * .35} ${cy - r}Z"/>`;
+  const sky = (cx, cy, r) => day ? sun(cx, cy, r) : moon(cx - r * .2, cy, r * 1.35);
+  const drops = (n, cls, col) => [...Array(n)].map((_, i) => {
+    const x = 22 + i * (22 / Math.max(1, n - 1)), d = (i * .37).toFixed(2);
+    return cls === "flake" ? `<circle class="flake" style="animation-delay:-${d}s" cx="${x}" cy="56" r="2.6" fill="${col}"/>`
+      : `<line class="drop" style="animation-delay:-${d}s" x1="${x}" y1="53" x2="${x - 2}" y2="59" stroke="${col}" stroke-width="2.6" stroke-linecap="round"/>`;
+  }).join("");
+  const body = {
+    clear: sky(32, 32, 13),
+    partly: sky(23, 22, 10) + cloud("#c5ced6", 4, 4, .92),
+    cloudy: cloud("#9aa6b0", -6, -6, .8) + cloud("#c5ced6", 2, 0),
+    fog: cloud("#b3bdc6", 0, -6) + [48, 54, 60].map((y, i) => `<line class="fogline" style="animation-delay:-${i * .8}s" x1="${14 + i * 3}" y1="${y}" x2="${50 - i * 2}" y2="${y}" stroke="#b3bdc6" stroke-width="3" stroke-linecap="round"/>`).join(""),
+    drizzle: cloud("#aab5bf", 0, -8) + drops(3, "drop", "#4aa3ff"),
+    rain: cloud("#8f9ba6", 0, -8) + drops(4, "drop", "#3d8ff5"),
+    snow: cloud("#b8c3cc", 0, -8) + drops(4, "flake", "#dceeff"),
+    thunder: cloud("#6f7c88", 0, -8) + '<path class="bolt" d="M33 44l-7 11h6l-3 9 10-13h-6l4-7z" fill="#ffd23d"/>',
+  }[kind] || sky(32, 32, 13);
+  return `<svg viewBox="0 0 64 64">${body}</svg>`;
+}
+let wxLoc = null, wxLocAt = 0;
+const wxFlag = cc => /^[A-Z]{2}$/.test(cc || "") ? String.fromCodePoint(...[...cc].map(c => 127397 + c.charCodeAt(0))) + " " : "";
+function wxTick() {
+  const now = new Date();
+  const hm = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  document.getElementById("wx-time").innerHTML = `${hm}<small>:${String(now.getSeconds()).padStart(2, "0")}</small>`;
+  document.getElementById("wx-date").textContent = now.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+}
+async function wxLocate() {
+  const coords = await new Promise(res => {
+    if (!navigator.geolocation) return res(null);
+    const t = setTimeout(() => res(null), 20000);               // sem resposta ao pedido de permissão
+    navigator.geolocation.getCurrentPosition(p => { clearTimeout(t); res(p.coords); }, () => { clearTimeout(t); res(null); },
+      { maximumAge: 15 * 60000, timeout: 15000 });
+  });
+  const q = coords ? `latitude=${coords.latitude.toFixed(4)}&longitude=${coords.longitude.toFixed(4)}&` : "";
+  const r = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?${q}localityLanguage=pt`);
+  if (!r.ok) throw new Error(r.status);
+  const g = await r.json();
+  return { lat: coords ? coords.latitude : g.latitude, lon: coords ? coords.longitude : g.longitude,
+           city: g.city || g.locality || g.principalSubdivision || "", country: g.countryName || "", cc: g.countryCode, approx: !coords };
+}
+async function loadWeather() {
+  if (document.hidden) return;
+  try {
+    if (!wxLoc || Date.now() - wxLocAt > 30 * 60000) { wxLoc = await wxLocate(); wxLocAt = Date.now(); }
+    const L = wxLoc;
+    document.getElementById("wx-place").textContent = wxFlag(L.cc) + [L.city, L.country].filter(Boolean).join(", ") + (L.approx ? " (aprox.)" : "");
+    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${L.lat.toFixed(4)}&longitude=${L.lon.toFixed(4)}`
+      + "&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,is_day&wind_speed_unit=kmh&timezone=auto");
+    if (!r.ok) throw new Error(r.status);
+    const c = (await r.json()).current;
+    const [kind, desc] = WX_CODES[c.weather_code] || ["cloudy", "—"];
+    const day = c.is_day !== 0;
+    document.getElementById("wx-icon").innerHTML = wxIcon(kind, day);
+    document.getElementById("wx-temp").innerHTML = `${nf(c.temperature_2m, 0)}<small>°C</small>`;
+    document.getElementById("wx-desc").textContent = desc + (kind === "clear" && !day ? " (noite)" : "");
+    document.getElementById("wx-feel").innerHTML = `${nf(c.apparent_temperature, 0)} <small>°C</small>`;
+    document.getElementById("wx-wind").innerHTML = `${nf(c.wind_speed_10m, 0)} <small>km/h</small>`;
+    document.getElementById("wx-hum").innerHTML = `${nf(c.relative_humidity_2m, 0)} <small>%</small>`;
+    document.querySelector(".wx").setAttribute("aria-label", `Hora local e tempo em ${L.city}: ${desc}, ${nf(c.temperature_2m, 0)} °C`);
+    document.getElementById("wx-note").textContent = `Tempo: Open-Meteo · atualizado às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
+      + (L.approx ? " · local aproximado pelo IP (permita a localização no navegador para mais precisão)" : "");
+  } catch (e) {
+    document.getElementById("wx-desc").textContent = "Tempo indisponível agora";
+    if (!wxLoc) document.getElementById("wx-place").textContent = "Localização indisponível";
+  }
+}
+wxTick();
+setInterval(wxTick, 1000);
+loadWeather();
+setInterval(loadWeather, 10 * 60000);
+let wxSeen = Date.now();
+document.addEventListener("visibilitychange", () => {     // voltou à aba depois de um tempo: atualiza já
+  if (document.hidden) { wxSeen = Date.now(); return; }
+  wxTick();
+  if (Date.now() - wxSeen > 5 * 60000) loadWeather();
+});
 
 // ------------------------------------------------------------------ blocos (mempool.space)
 const BVIEWS = ["rede", "minhas", "solo"];
