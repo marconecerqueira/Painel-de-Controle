@@ -1,0 +1,3 @@
+terra-dia.jpg   - NASA Blue Marble (Visible Earth), domínio público. Reduzida para 1024x512.
+terra-noite.jpg - NASA Black Marble / Earth at Night, domínio público. Reduzida para 1024x512.
+Cópias obtidas do exemplo do pacote three-globe (unpkg.com/three-globe@2.31.0/example/img).

@@ -23,7 +23,7 @@ minerador = "minerador.__main__:main"
 include = ["minerador*"]
 
 [tool.setuptools.package-data]
-minerador = ["static/*", "static/fonts/*"]
+minerador = ["static/*", "static/fonts/*", "static/img/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

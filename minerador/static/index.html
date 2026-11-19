@@ -227,43 +227,128 @@
   details.tbl summary { cursor: pointer; color: var(--accent); }
   details.tbl .scroll { max-height: 260px; overflow: auto; }
 
-  /* ---------------- hora local e tempo (Open-Meteo) */
-  .wx { margin-top: 12px; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1fr); gap: 16px 24px; align-items: center; padding: 18px 20px; }
+  /* ---------------- hora local e tempo (Open-Meteo): céu animado ao fundo, globo 3D à esquerda.
+     Paleta própria (texto claro sobre o céu), igual nos dois temas. Classe sky-* vem do tempo atual. */
+  .wx { --wx-ink: #f3f7fc; --wx-muted: rgba(235,243,252,.72); --wx-line: rgba(255,255,255,.16);
+    position: relative; overflow: hidden; isolation: isolate; margin-top: 12px; padding: 18px 22px; color: var(--wx-ink);
+    display: grid; grid-template-columns: 172px minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 14px 26px; align-items: center;
+    background: linear-gradient(180deg, #050b1f, #0d1838 60%, #1a2350); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+    transition: background .8s ease; text-shadow: 0 1px 3px rgba(0,0,0,.35); }
+  .wx > :not(.wx-bg) { position: relative; z-index: 1; }
+  .wx-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+  .wx-bg i { position: absolute; inset: 0; display: block; opacity: 0; transition: opacity .8s ease; }
+  /* noite: estrelas em três camadas, derivando devagar e piscando */
+  .sky-night .wx-bg .l1 { opacity: 1; background-image:
+      radial-gradient(1.2px 1.2px at 12px 18px, #fff 50%, transparent), radial-gradient(1px 1px at 64px 92px, #fff 50%, transparent),
+      radial-gradient(1.4px 1.4px at 132px 40px, #fff 50%, transparent), radial-gradient(1px 1px at 180px 130px, #dfe9ff 50%, transparent),
+      radial-gradient(1px 1px at 98px 150px, #fff 50%, transparent), radial-gradient(1.2px 1.2px at 210px 70px, #fff 50%, transparent);
+    background-size: 240px 170px; right: -480px; --sx: -480px; animation: wx-shift 140s linear infinite; }
+  .sky-night .wx-bg .l2 { opacity: 1; background-image:
+      radial-gradient(1.8px 1.8px at 40px 60px, #fff 50%, transparent), radial-gradient(1.6px 1.6px at 150px 20px, #cfe0ff 50%, transparent),
+      radial-gradient(2px 2px at 260px 110px, #fff 50%, transparent), radial-gradient(1.6px 1.6px at 330px 50px, #ffe9c4 50%, transparent);
+    background-size: 380px 150px; right: -380px; --sx: -380px; animation: wx-shift 90s linear infinite, wx-twinkle 3.4s ease-in-out infinite alternate; }
+  .sky-night .wx-bg .l3 { opacity: .55; background: radial-gradient(ellipse 45% 70% at 70% 30%, rgba(120,140,255,.18), transparent 70%),
+      radial-gradient(ellipse 30% 50% at 20% 80%, rgba(90,200,255,.10), transparent 70%); }
+  /* camadas maiores que o cartão deslizam com transform (só a placa gráfica trabalha; nada é redesenhado) */
+  .wx-bg i { will-change: transform; }
+  @keyframes wx-shift { from { transform: translate(0, 0); } to { transform: translate(var(--sx, 0px), var(--sy, 0px)); } }
+  @keyframes wx-twinkle { from { opacity: .35; } to { opacity: 1; } }
+  /* sol: céu azul, brilho do sol e raios girando */
+  .wx.sky-sunny { background: linear-gradient(180deg, #145fae, #2f86cf 55%, #66b3e8); }
+  .sky-sunny .wx-bg .l1 { opacity: 1; background: radial-gradient(circle at 92% 0%, rgba(255,247,200,.95) 0 34px, rgba(255,226,130,.45) 60px, transparent 190px);
+    animation: wx-pulse 5s ease-in-out infinite alternate; }
+  .sky-sunny .wx-bg .l2 { opacity: 1; inset: auto; top: -230px; right: -230px; width: 520px; height: 520px; border-radius: 50%;
+    background: repeating-conic-gradient(rgba(255,250,215,.22) 0 5deg, transparent 5deg 16deg);
+    -webkit-mask: radial-gradient(circle, #000 18%, transparent 70%); mask: radial-gradient(circle, #000 18%, transparent 70%);
+    animation: wx-rot 70s linear infinite; }
+  .sky-sunny .wx-bg .l3 { opacity: .7; background-image: radial-gradient(ellipse 120px 34px at 30% 82%, rgba(255,255,255,.35), transparent 70%),
+      radial-gradient(ellipse 90px 26px at 75% 92%, rgba(255,255,255,.28), transparent 70%);
+    background-size: 900px 100%; left: -900px; --sx: 900px; animation: wx-shift 60s linear infinite; }
+  @keyframes wx-pulse { from { opacity: .8; } to { opacity: 1; } }
+  @keyframes wx-rot { to { transform: rotate(360deg); } }
+  /* nublado / nevoeiro: nuvens cinzentas a passar */
+  .wx.sky-cloudy { background: linear-gradient(180deg, #3e5064, #62778d 60%, #8397ab); }
+  .sky-cloudy .wx-bg .l1, .sky-rain .wx-bg .l3, .sky-snow .wx-bg .l3 { opacity: 1;
+    background-image: radial-gradient(ellipse 170px 46px at 15% 22%, rgba(235,240,246,.30), transparent 70%),
+      radial-gradient(ellipse 210px 60px at 55% 12%, rgba(235,240,246,.26), transparent 70%),
+      radial-gradient(ellipse 150px 40px at 85% 30%, rgba(235,240,246,.24), transparent 70%);
+    background-size: 1100px 100%; left: -1100px; --sx: 1100px; animation: wx-shift 50s linear infinite; }
+  .sky-cloudy .wx-bg .l2 { opacity: 1; background-image: radial-gradient(ellipse 230px 60px at 35% 80%, rgba(220,228,236,.20), transparent 70%),
+      radial-gradient(ellipse 180px 50px at 80% 70%, rgba(220,228,236,.18), transparent 70%);
+    background-size: 1300px 100%; right: -1300px; --sx: -1300px; animation: wx-shift 85s linear infinite; }
+  /* chuva: riscos inclinados caindo em duas velocidades, nuvens escuras; trovoada = relâmpago */
+  .wx.sky-rain { background: linear-gradient(180deg, #18222f, #2c3a4b 60%, #3e4e61); }
+  .sky-rain .wx-bg .l1 { opacity: 1; top: -120px; --sy: 120px; animation: wx-shift .55s linear infinite; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='120'%3E%3Cg stroke='%23bcd6ff' stroke-opacity='.42' stroke-width='1.4' stroke-linecap='round'%3E%3Cpath d='M12 4l-3 15M48 38l-3 15M72 78l-3 15M26 92l-3 15M62 8l-3 15'/%3E%3C/g%3E%3C/svg%3E"); }
+  .sky-rain .wx-bg .l2 { opacity: .7; top: -150px; --sy: 150px; animation: wx-shift .9s linear infinite; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='110' height='150'%3E%3Cg stroke='%23d6e6ff' stroke-opacity='.45' stroke-width='1' stroke-linecap='round'%3E%3Cpath d='M20 10l-2 10M80 50l-2 10M50 100l-2 10M100 130l-2 10'/%3E%3C/g%3E%3C/svg%3E"); }
+  .sky-rain .wx-bg .l3 { opacity: .8; }
+  .sky-thunder .wx-bg .flash { opacity: 0; background: rgba(230,238,255,.55); animation: wx-flash 7s linear infinite; }
+  @keyframes wx-flash { 0%, 88%, 92%, 95%, 100% { opacity: 0; } 89%, 93.5% { opacity: 1; } }
+  /* neve: flocos caindo devagar */
+  .wx.sky-snow { background: linear-gradient(180deg, #34475e, #5a6f88 60%, #8193aa); }
+  .sky-snow .wx-bg .l1 { opacity: 1; top: -100px; --sy: 100px; animation: wx-shift 7s linear infinite; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cg fill='%23ffffff' fill-opacity='.85'%3E%3Ccircle cx='10' cy='12' r='2'/%3E%3Ccircle cx='55' cy='40' r='1.6'/%3E%3Ccircle cx='82' cy='75' r='2.2'/%3E%3Ccircle cx='30' cy='85' r='1.4'/%3E%3C/g%3E%3C/svg%3E"); }
+  .sky-snow .wx-bg .l2 { opacity: .7; top: -140px; --sy: 140px; animation: wx-shift 11s linear infinite; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cg fill='%23ffffff' fill-opacity='.6'%3E%3Ccircle cx='20' cy='30' r='1.2'/%3E%3Ccircle cx='90' cy='70' r='1.5'/%3E%3Ccircle cx='120' cy='120' r='1'/%3E%3C/g%3E%3C/svg%3E"); }
+  /* chuva ou neve à noite: céu mais escuro */
+  .wx.is-night.sky-rain { background: linear-gradient(180deg, #0a1018, #18222f 60%, #222e3c); }
+  .wx.is-night.sky-snow { background: linear-gradient(180deg, #141d2c, #27354a 60%, #3a4a61); }
+  /* globo */
+  .wx-globe { width: 172px; aspect-ratio: 1; }
+  .wx-globe canvas { display: block; width: 100%; height: 100%; }
+  /* textos */
   .wx-time { font: 600 44px/1 var(--cond); font-variant-numeric: tabular-nums; letter-spacing: .01em; }
-  .wx-time small { font-size: 22px; color: var(--muted); margin-left: 2px; }
-  .wx-date { margin-top: 6px; font-size: 15px; color: var(--ink-2); }
+  .wx-time small { font-size: 22px; color: var(--wx-muted); margin-left: 2px; }
+  .wx-date { margin-top: 6px; font-size: 15px; color: var(--wx-muted); }
   .wx-date::first-letter { text-transform: uppercase; }
   .wx-place { display: flex; align-items: center; gap: 6px; margin-top: 6px; font: 600 15px var(--cond); }
-  .wx-place svg { width: 16px; height: 16px; flex: none; color: var(--good-text); }
+  .wx-place svg { width: 16px; height: 16px; flex: none; color: #7ee2a0; }
   .wx-now { display: flex; align-items: center; gap: 14px; }
-  .wx-icon { width: 76px; height: 76px; flex: none; }
+  .wx-icon { width: 76px; height: 76px; flex: none; filter: drop-shadow(0 2px 6px rgba(0,0,0,.3)); }
   .wx-icon svg { width: 100%; height: 100%; overflow: visible; }
   .wx-temp { font: 600 44px/1 var(--cond); font-variant-numeric: tabular-nums; }
-  .wx-temp small { font-size: 22px; color: var(--muted); margin-left: 2px; }
-  .wx-desc { margin-top: 4px; font-size: 15px; color: var(--ink-2); }
+  .wx-temp small { font-size: 22px; color: var(--wx-muted); margin-left: 2px; }
+  .wx-desc { margin-top: 4px; font-size: 15px; color: var(--wx-muted); }
   .wx-stats { margin: 0; display: grid; gap: 8px; }
-  .wx-stats div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-bottom: 7px; border-bottom: 1px solid var(--hair); }
+  .wx-stats div { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 7px; border-bottom: 1px solid var(--wx-line); }
   .wx-stats div:last-child { border-bottom: 0; padding-bottom: 0; }
-  .wx-stats dt { font-size: 13.5px; color: var(--muted); }
+  .wx-stats dt { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--wx-muted); }
+  .wx-stats dt svg { width: 22px; height: 22px; flex: none; color: var(--wx-ink); overflow: visible; }
   .wx-stats dd { margin: 0; font: 600 19px var(--cond); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .wx-stats dd small { font-size: 13px; color: var(--muted); font-weight: 500; }
-  .wx-note { grid-column: 1 / -1; font-size: 12px; color: var(--muted); margin-top: -6px; }
+  .wx-stats dd small { font-size: 13px; color: var(--wx-muted); font-weight: 500; }
+  .wx-note { grid-column: 1 / -1; font-size: 12px; color: var(--wx-muted); margin-top: -6px; }
   .wx-note:empty { display: none; }
-  /* ícones animados: sol gira, nuvem flutua, chuva/neve caem, raio pisca */
+  /* ícones das medidas: mercúrio sobe e desce, vento sopra, água balança na gota */
+  .ic-thermo .merc { transform-box: fill-box; transform-origin: 50% 100%; animation: wx-merc 2.6s ease-in-out infinite alternate; }
+  @keyframes wx-merc { from { transform: scaleY(.7); } to { transform: scaleY(1); } }
+  .ic-wind path { stroke-dasharray: 22 5; animation: wx-blow 1.4s linear infinite; }
+  .ic-wind .g2 { animation-duration: 1.1s; } .ic-wind .g3 { stroke-dasharray: 5 4; animation-duration: .9s; }
+  @keyframes wx-blow { from { stroke-dashoffset: 27; } to { stroke-dashoffset: 0; } }
+  .ic-drop .water { transition: y .8s ease; animation: wx-slosh 2.2s ease-in-out infinite alternate; }
+  @keyframes wx-slosh { from { transform: translateY(.6px); } to { transform: translateY(-.6px); } }
+  /* ícone grande do tempo */
   .wx-icon .sun-rays { transform-origin: 32px 32px; animation: wx-spin 24s linear infinite; }
   .wx-icon .cloud { animation: wx-drift 6s ease-in-out infinite alternate; }
   .wx-icon .drop { animation: wx-fall 1.1s linear infinite; }
   .wx-icon .flake { animation: wx-fall 2.4s linear infinite; }
-  .wx-icon .bolt { animation: wx-flash 2.6s steps(1) infinite; }
+  .wx-icon .bolt { animation: wx-bolt 2.6s steps(1) infinite; }
   .wx-icon .fogline { animation: wx-drift 4s ease-in-out infinite alternate; }
   @keyframes wx-spin { to { transform: rotate(360deg); } }
   @keyframes wx-drift { from { transform: translateX(-2px); } to { transform: translateX(3px); } }
   @keyframes wx-fall { from { transform: translateY(-4px); opacity: 0; } 25% { opacity: 1; } to { transform: translateY(9px); opacity: 0; } }
-  @keyframes wx-flash { 0%, 60%, 70%, 100% { opacity: 1; } 62%, 68% { opacity: .15; } }
-  @media (prefers-reduced-motion: reduce) { .wx-icon * { animation: none !important; } }
-  @media (max-width: 860px) { .wx { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .wx-stats { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .wx-stats div { flex-direction: column; align-items: flex-start; gap: 2px; border-bottom: 0; padding-bottom: 0; } }
-  @media (max-width: 520px) { .wx { grid-template-columns: minmax(0, 1fr); } .wx-time, .wx-temp { font-size: 38px; } .wx-icon { width: 64px; height: 64px; } }
+  @keyframes wx-bolt { 0%, 60%, 70%, 100% { opacity: 1; } 62%, 68% { opacity: .15; } }
+  @media (prefers-reduced-motion: reduce) { .wx *, .wx *::before, .wx *::after { animation: none !important; } }
+  @media (max-width: 1060px) {
+    .wx { grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1fr); }
+    .wx-globe { width: 150px; grid-row: span 1; }
+    .wx-stats { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .wx-stats div { border-bottom: 0; padding-bottom: 0; }
+  }
+  @media (max-width: 640px) {
+    .wx { grid-template-columns: 116px minmax(0, 1fr); padding: 16px; gap: 12px 16px; }
+    .wx-globe { width: 116px; }
+    .wx-now { grid-column: 1 / -1; }
+    .wx-time, .wx-temp { font-size: 36px; } .wx-icon { width: 62px; height: 62px; }
+    .wx-stats { grid-template-columns: minmax(0, 1fr); }
+    .wx-stats div { border-bottom: 1px solid var(--wx-line); padding-bottom: 7px; }
+  }
 
   /* ---------------- blocos */
   .blocks-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -478,7 +563,9 @@
     <details class="tbl"><summary>Ver como tabela</summary><div class="scroll" id="chart-table"></div></details>
   </section>
 
-  <section class="card wx" aria-label="Hora local e tempo">
+  <section class="card wx sky-night" aria-label="Hora local e tempo">
+    <div class="wx-bg" aria-hidden="true"><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="flash"></i></div>
+    <div class="wx-globe" aria-hidden="true"><canvas id="wx-globe"></canvas></div>
     <div class="wx-clock">
       <div class="wx-time" id="wx-time">--:--<small>:--</small></div>
       <div class="wx-date" id="wx-date"></div>
@@ -489,9 +576,9 @@
       <div><div class="wx-temp" id="wx-temp">--<small>°C</small></div><div class="wx-desc" id="wx-desc">Carregando o tempo…</div></div>
     </div>
     <dl class="wx-stats">
-      <div><dt>Sensação térmica</dt><dd id="wx-feel">— <small>°C</small></dd></div>
-      <div><dt>Vento</dt><dd id="wx-wind">— <small>km/h</small></dd></div>
-      <div><dt>Humidade</dt><dd id="wx-hum">— <small>%</small></dd></div>
+      <div><dt><svg class="ic-thermo" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4a2 2 0 0 1 4 0v9.3a4 4 0 1 1-4 0Z" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="16.6" r="2.1" fill="#ff6a55"/><rect class="merc" x="11.1" y="7" width="1.8" height="9" rx=".9" fill="#ff6a55"/><path d="M15.5 6h2M15.5 9h1.5M15.5 12h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Sensação térmica</dt><dd id="wx-feel">— <small>°C</small></dd></div>
+      <div><dt><svg class="ic-wind" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path class="g1" d="M2 8h11a3 3 0 1 0-3-3"/><path class="g2" d="M2 12h17a3 3 0 1 1-3 3"/><path class="g3" d="M2 16h7"/></svg>Vento</dt><dd id="wx-wind">— <small>km/h</small></dd></div>
+      <div><dt><svg class="ic-drop" viewBox="0 0 24 24" aria-hidden="true"><defs><clipPath id="wx-dclip"><path d="M12 2.5C9 7 5.5 10.6 5.5 14.6a6.5 6.5 0 0 0 13 0C18.5 10.6 15 7 12 2.5Z"/></clipPath></defs><g clip-path="url(#wx-dclip)"><rect class="water" id="wx-water" x="0" y="11" width="24" height="14" fill="#4aa3ff"/></g><path d="M12 2.5C9 7 5.5 10.6 5.5 14.6a6.5 6.5 0 0 0 13 0C18.5 10.6 15 7 12 2.5Z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M9 15a3 3 0 0 0 2 2.6" stroke="#fff" stroke-width="1.3" fill="none" stroke-linecap="round" opacity=".7"/></svg>Humidade</dt><dd id="wx-hum">— <small>%</small></dd></div>
     </dl>
     <div class="wx-note" id="wx-note"></div>
   </section>
@@ -1207,6 +1294,12 @@ async function loadWeather() {
     document.getElementById("wx-feel").innerHTML = `${nf(c.apparent_temperature, 0)} <small>°C</small>`;
     document.getElementById("wx-wind").innerHTML = `${nf(c.wind_speed_10m, 0)} <small>km/h</small>`;
     document.getElementById("wx-hum").innerHTML = `${nf(c.relative_humidity_2m, 0)} <small>%</small>`;
+    // céu do fundo: chuva/neve têm prioridade; sem precipitação, noite = estrelas, dia = sol ou nuvens
+    const sky = ["rain", "drizzle", "thunder"].includes(kind) ? "rain" : kind === "snow" ? "snow"
+      : !day ? "night" : ["clear", "partly"].includes(kind) ? "sunny" : "cloudy";
+    document.querySelector(".wx").className = `card wx sky-${sky}${kind === "thunder" ? " sky-thunder" : ""}${day ? "" : " is-night"}`;
+    document.getElementById("wx-water").setAttribute("y", (21.1 - 18.6 * Math.min(100, c.relative_humidity_2m) / 100).toFixed(2));
+    if (L.lat != null) globeLoc = [L.lat, L.lon];
     document.querySelector(".wx").setAttribute("aria-label", `Hora local e tempo em ${L.city}: ${desc}, ${nf(c.temperature_2m, 0)} °C`);
     document.getElementById("wx-note").textContent = `Tempo: Open-Meteo · atualizado às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", ...(wxTz ? { timeZone: wxTz } : {}) })}`
       + (L.fixed ? ` · hora e tempo do local fixo: ${L.city} (config.toml)`
@@ -1216,6 +1309,156 @@ async function loadWeather() {
     if (!wxLoc) document.getElementById("wx-place").textContent = "Localização indisponível";
   }
 }
+// ------------------------------------------------------------------ globo 3D (WebGL): Terra girando, anel fino e o sol dando voltas
+// Texturas NASA Blue Marble / Black Marble (domínio público), 1024×512, em static/img.
+// O sol percorre o anel; a face da Terra virada para ele fica de dia, a outra mostra as luzes das cidades.
+let globeLoc = null;                                   // [lat, lon] do local do cartão: ponto verde no globo
+const GLOBE_R = .58, RING_R = 1.55, RING_TILT = 14 * Math.PI / 180, RING_ROLL = -20 * Math.PI / 180, AXIS_TILT = 23.4 * Math.PI / 180;
+const GLOBE_VS = "attribute vec2 a; varying vec2 vP; void main(){ vP = a; gl_Position = vec4(a, 0.0, 1.0); }";
+const GLOBE_FS = `precision highp float;
+varying vec2 vP;
+uniform sampler2D uDay, uNight;
+uniform float uRot, uTilt, uScale, uPx, uPulse;
+uniform vec3 uSun, uLoc;
+void main() {
+  vec2 p = vP / uScale;
+  float r = length(p);
+  vec3 sunN = normalize(uSun);
+  float lit = clamp(dot(normalize(vec3(p, 0.15)), sunN) * .8 + .35, .08, 1.);
+  float atmA = exp(-max(r - 1., 0.) * 13.) * .6 * lit;
+  vec3 atm = vec3(.35, .62, 1.) * atmA;
+  if (r > 1.) { gl_FragColor = vec4(atm, atmA); return; }
+  vec3 n = vec3(p, sqrt(1. - r * r));
+  float ct = cos(uTilt), st = sin(uTilt);
+  vec3 w = vec3(ct * n.x + st * n.y, -st * n.x + ct * n.y, n.z);
+  float lat = asin(clamp(w.y, -1., 1.));
+  float lon = atan(w.x, w.z) + uRot;
+  vec2 uv = vec2(lon / 6.2831853 + .5, .5 - lat / 3.1415927);
+  vec3 day = texture2D(uDay, uv).rgb, night = texture2D(uNight, uv).rgb;
+  float l = dot(n, sunN);
+  float dayAmt = smoothstep(-.12, .22, l);
+  vec3 col = mix(night * vec3(1., .82, .55) * 1.7 + day * .05, day * (.16 + 1.05 * max(l, 0.)), dayAmt);
+  float ocean = smoothstep(.04, .2, day.b - max(day.r, day.g));
+  vec3 h = normalize(sunN + vec3(0., 0., 1.));
+  col += vec3(1., .95, .85) * pow(max(dot(n, h), 0.), 60.) * ocean * .75 * dayAmt;
+  col = mix(col, vec3(.45, .7, 1.), pow(1. - n.z, 2.5) * (.2 + .5 * dayAmt));
+  if (uLoc.z > 0.) {
+    float d = distance(n, uLoc);
+    col = mix(col, vec3(.55, 1., .65), smoothstep(.055, .02, d));
+    col += vec3(.4, 1., .5) * smoothstep(.02, 0., abs(d - .05 - .09 * uPulse)) * (1. - uPulse);
+  }
+  float edge = smoothstep(1., 1. - 1.6 / uPx, r);
+  gl_FragColor = vec4(col * edge + atm * (1. - edge), edge + atmA * (1. - edge));
+}`;
+function globeInit() {
+  const view = document.getElementById("wx-globe");
+  if (!view) return;
+  const ctx = view.getContext("2d");
+  const off = document.createElement("canvas");
+  const gl = off.getContext("webgl", { premultipliedAlpha: true, alpha: true, antialias: true });
+  let prog = null, ready = 0, texs = [];
+  if (gl) {
+    const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
+    prog = gl.createProgram();
+    gl.attachShader(prog, sh(gl.VERTEX_SHADER, GLOBE_VS));
+    gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, GLOBE_FS));
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) prog = null;
+  }
+  if (prog) {
+    gl.useProgram(prog);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, "a");
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    ["/static/img/terra-dia.jpg", "/static/img/terra-noite.jpg"].forEach((src, i) => {
+      const t = texs[i] = gl.createTexture(), img = new Image();
+      img.onload = () => {
+        gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, t);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        ready++;
+      };
+      img.src = src;
+    });
+    gl.uniform1i(gl.getUniformLocation(prog, "uDay"), 0);
+    gl.uniform1i(gl.getUniformLocation(prog, "uNight"), 1);
+  }
+  const U = name => prog && gl.getUniformLocation(prog, name);
+  const u = { rot: U("uRot"), tilt: U("uTilt"), scale: U("uScale"), px: U("uPx"), sun: U("uSun"), loc: U("uLoc"), pulse: U("uPulse") };
+  // ponto do anel no ângulo a (unidades do globo; y para cima, z para quem olha)
+  const ringPt = a => {
+    const x = Math.cos(a) * RING_R, z0 = Math.sin(a) * RING_R;
+    const y1 = -z0 * Math.sin(RING_TILT), z = z0 * Math.cos(RING_TILT);
+    return [x * Math.cos(RING_ROLL) - y1 * Math.sin(RING_ROLL), x * Math.sin(RING_ROLL) + y1 * Math.cos(RING_ROLL), z];
+  };
+  let visible = true, last = 0;
+  new IntersectionObserver(es => { visible = es[0].isIntersecting; }).observe(view);
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function frame(now) {
+    requestAnimationFrame(frame);
+    if (!visible || document.hidden || now - last < 33) return;      // ~30 fps, parado fora da tela
+    last = now;
+    const t = still ? 20 : now / 1000;
+    const W = Math.round(view.clientWidth * (window.devicePixelRatio || 1));
+    if (!W) return;
+    if (view.width !== W) { view.width = view.height = W; off.width = off.height = W; }
+    const half = W / 2, k = half * GLOBE_R;                       // px por unidade do globo
+    const X = p => half + p[0] * k, Y = p => half - p[1] * k;
+    const sunA = t * (2 * Math.PI / 16), sun = ringPt(sunA);
+    ctx.clearRect(0, 0, W, W);
+    // anel: metade de trás antes do globo, metade da frente depois; mais claro perto do sol
+    const ring = front => {
+      const N = 160;
+      for (let i = 0; i < N; i++) {
+        const a0 = i / N * 2 * Math.PI, a1 = (i + 1) / N * 2 * Math.PI, p0 = ringPt(a0), p1 = ringPt(a1);
+        if ((p0[2] + p1[2] >= 0) !== front) continue;
+        const near = Math.max(0, Math.cos(a0 - sunA));
+        ctx.strokeStyle = `rgba(${Math.round(170 + 85 * near ** 6)},${Math.round(210 + 30 * near ** 6)},255,${(.28 + .6 * near ** 8).toFixed(3)})`;
+        ctx.lineWidth = Math.max(1, W / 190);
+        ctx.beginPath(); ctx.moveTo(X(p0), Y(p0)); ctx.lineTo(X(p1), Y(p1)); ctx.stroke();
+      }
+    };
+    const sunGlow = () => {
+      const sx = X(sun), sy = Y(sun), R = W * .11;
+      const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, R);
+      g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(.18, "rgba(255,240,180,.95)");
+      g.addColorStop(.45, "rgba(255,200,90,.35)"); g.addColorStop(1, "rgba(255,180,60,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(sx, sy, R, 0, 2 * Math.PI); ctx.fill();
+    };
+    ring(false);
+    if (sun[2] < 0) sunGlow();
+    if (prog && ready === 2) {
+      gl.viewport(0, 0, W, W);
+      gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+      const rot = -t * (2 * Math.PI / 40);
+      gl.uniform1f(u.rot, rot); gl.uniform1f(u.tilt, AXIS_TILT); gl.uniform1f(u.scale, GLOBE_R); gl.uniform1f(u.px, k);
+      gl.uniform3f(u.sun, sun[0], sun[1], sun[2]);
+      gl.uniform1f(u.pulse, (t * .6) % 1);
+      if (globeLoc) {
+        const la = globeLoc[0] * Math.PI / 180, lo = globeLoc[1] * Math.PI / 180 - rot;
+        const w = [Math.cos(la) * Math.sin(lo), Math.sin(la), Math.cos(la) * Math.cos(lo)];
+        const ct = Math.cos(AXIS_TILT), st = Math.sin(AXIS_TILT);
+        gl.uniform3f(u.loc, ct * w[0] - st * w[1], st * w[0] + ct * w[1], w[2]);
+      } else gl.uniform3f(u.loc, 0, 0, -1);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      ctx.drawImage(off, 0, 0);
+    } else {                                                      // sem WebGL (ou carregando): esfera simples
+      const g = ctx.createRadialGradient(half - k * .35, half - k * .35, k * .1, half, half, k);
+      g.addColorStop(0, "#5aa0e6"); g.addColorStop(1, "#0b2c5a");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(half, half, k, 0, 2 * Math.PI); ctx.fill();
+    }
+    ring(true);
+    if (sun[2] >= 0) sunGlow();
+  }
+  requestAnimationFrame(frame);
+}
+globeInit();
+
 wxTick();
 setInterval(wxTick, 1000);
 loadWeather();
