@@ -66,6 +66,7 @@ Ambas as APIs são sem chave.
 Visual do cartão:
 - **Fundo:** a classe `sky-night|sunny|cloudy|rain|snow` vem do código WMO e de `is_day`. As camadas do céu animam só com `transform` (sem `background-position`), para não forçar repintura.
 - **Globo:** WebGL num canvas fora da tela, com as texturas `static/img/terra-*.jpg`, composto num canvas 2D. A ordem de desenho é metade de trás do anel → globo → metade da frente. O sol percorre o anel e serve de direção da luz; o ponto verde marca o local.
+- **Modo leve:** interruptor no topo, guardado em localStorage `minerador.leve`. Põe a classe `html.leve`, que zera as animações CSS de `.neo`/`.wx` e tira os brilhos externos. Nesse modo o globo desenha um quadro só (`globeKick` redesenha quando algo muda) e o Goggles redesenha a cada 5 s, sem o brilho das transações novas. Toda animação nova deve respeitar `leve`.
 - **Desempenho:** a máquina do usuário fica sem memória com facilidade. Mantenha as animações baratas e parar quando estiverem fora da tela. O middleware em `app.py` força `Cache-Control: no-cache` em tudo que não é `/api/`, porque o Safari mostrava ícones antigos.
 
 **Mac:** `macos/PainelBarra.swift` é um app `MenuBarExtra` que consome a mesma API (padrão `http://127.0.0.1:8080`). Duas armadilhas conhecidas:

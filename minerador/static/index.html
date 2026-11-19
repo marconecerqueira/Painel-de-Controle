@@ -67,6 +67,24 @@
   .live { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--silk-2); margin-top: 4px; }
   .live i { width: 8px; height: 8px; border-radius: 50%; background: var(--led-good); box-shadow: 0 0 6px var(--led-good); }
   .live.stale { color: #ffb3b0; }
+  /* interruptor do modo leve */
+  .leve-btn { display: inline-flex; align-items: center; gap: 7px; margin: 4px 0 0 12px; vertical-align: top; font: 500 12.5px var(--text); color: var(--silk-2);
+    background: rgba(232,241,236,.07); border: 0; box-shadow: inset 0 0 0 1px rgba(232,241,236,.2); border-radius: 999px; padding: 3px 10px 3px 4px; cursor: pointer; }
+  .leve-btn .sw { position: relative; width: 26px; height: 15px; border-radius: 999px; background: rgba(232,241,236,.22); transition: background .2s; }
+  .leve-btn .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 11px; height: 11px; border-radius: 50%; background: var(--silk); transition: transform .2s; }
+  .leve-btn[aria-pressed="true"] { color: var(--silk); box-shadow: inset 0 0 0 1px var(--led-good); }
+  .leve-btn[aria-pressed="true"] .sw { background: var(--led-good); }
+  .leve-btn[aria-pressed="true"] .sw::after { transform: translateX(11px); }
+  .leve-btn:focus-visible { outline: 2px solid var(--silk); outline-offset: 2px; }
+  /* modo leve: tudo parado e sem brilhos externos (os mais caros de desenhar); os dados continuam atualizando */
+  html.leve .neo *, html.leve .neo *::before, html.leve .neo *::after,
+  html.leve .wx *, html.leve .wx *::before, html.leve .wx *::after { animation: none !important; transition: none !important; }
+  html.leve .neo .f { box-shadow: inset 0 0 16px rgba(74,222,128,.16); }
+  html.leve .neo-item.next .f { box-shadow: inset 0 0 16px rgba(255,255,255,.16); }
+  html.leve .neo-ring::before { box-shadow: none; }
+  html.leve .neo-ring i { display: none; }
+  html.leve .neo-link i, html.leve .neo-center { animation: none !important; }
+  html.leve .wx-bg i { will-change: auto; }
   .live.stale i { background: var(--led-bad); box-shadow: 0 0 6px var(--led-bad); }
   .live i.blink { animation: blink .6s ease-out; }
   @keyframes blink { from { opacity: .25; } to { opacity: 1; } }
@@ -583,6 +601,8 @@
       <div>
         <h1 id="titulo" class="brand"><img src="/static/logo.svg?v=20261118" alt="Painel de Controle" width="520" height="520"></h1>
         <div class="live" id="updated" aria-live="polite"><i id="live-led"></i><span>Conectando…</span></div>
+        <button class="leve-btn" id="leve-btn" type="button" aria-pressed="false" title="Desliga as animações para poupar memória e bateria; os dados continuam ao vivo">
+          <span class="sw" aria-hidden="true"></span>Modo leve</button>
       </div>
       <div class="totals" id="totals"></div>
     </div>
@@ -1340,7 +1360,7 @@ async function loadWeather() {
       : !day ? "night" : ["clear", "partly"].includes(kind) ? "sunny" : "cloudy";
     document.querySelector(".wx").className = `card wx sky-${sky}${kind === "thunder" ? " sky-thunder" : ""}${day ? "" : " is-night"}`;
     document.getElementById("wx-water").setAttribute("y", (21.1 - 18.6 * Math.min(100, c.relative_humidity_2m) / 100).toFixed(2));
-    if (L.lat != null) globeLoc = [L.lat, L.lon];
+    if (L.lat != null) { globeLoc = [L.lat, L.lon]; globeKick(); }   // no modo leve, redesenha o quadro parado com o ponto
     document.querySelector(".wx").setAttribute("aria-label", `Hora local e tempo em ${L.city}: ${desc}, ${nf(c.temperature_2m, 0)} °C`);
     document.getElementById("wx-note").textContent = `Tempo: Open-Meteo · atualizado às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", ...(wxTz ? { timeZone: wxTz } : {}) })}`
       + (L.fixed ? ` · hora e tempo do local fixo: ${L.city} (config.toml)`
@@ -1350,6 +1370,22 @@ async function loadWeather() {
     if (!wxLoc) document.getElementById("wx-place").textContent = "Localização indisponível";
   }
 }
+// ------------------------------------------------------------------ modo leve
+// Interruptor no topo: para as animações (cubos, globo, céu, ícones, brilho do Goggles) e mantém os dados ao vivo.
+// Fica guardado por aparelho (localStorage).
+let leve = false;
+try { leve = localStorage.getItem("minerador.leve") === "1"; } catch (e) {}
+let globeKick = () => {};
+function setLeve(v) {
+  leve = v;
+  document.documentElement.classList.toggle("leve", v);
+  document.getElementById("leve-btn").setAttribute("aria-pressed", String(v));
+  try { localStorage.setItem("minerador.leve", v ? "1" : "0"); } catch (e) {}
+  globeKick();
+}
+document.getElementById("leve-btn").addEventListener("click", () => setLeve(!leve));
+setLeve(leve);
+
 // ------------------------------------------------------------------ globo 3D (WebGL): Terra girando, anel fino e o sol dando voltas
 // Texturas NASA Blue Marble / Black Marble (domínio público), 1024×512, em static/img.
 // O sol percorre o anel; a face da Terra virada para ele fica de dia, a outra mostra as luzes das cidades.
@@ -1422,7 +1458,7 @@ function globeInit() {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        ready++;
+        if (++ready === 2) globeKick();                          // texturas prontas: redesenha (o modo leve estava parado)
       };
       img.src = src;
     });
@@ -1437,14 +1473,18 @@ function globeInit() {
     const y1 = -z0 * Math.sin(RING_TILT), z = z0 * Math.cos(RING_TILT);
     return [x * Math.cos(RING_ROLL) - y1 * Math.sin(RING_ROLL), x * Math.sin(RING_ROLL) + y1 * Math.cos(RING_ROLL), z];
   };
-  let visible = true, last = 0;
-  new IntersectionObserver(es => { visible = es[0].isIntersecting; }).observe(view);
+  let visible = true, last = 0, running = false, drawn = false;
+  new IntersectionObserver(es => { visible = es[0].isIntersecting; if (visible) globeKick(); }).observe(view);
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // parado (modo leve ou "reduzir movimento"): desenha um quadro só, com o sol à frente-direita, e para o laço
+  globeKick = () => { drawn = false; if (!running) { running = true; requestAnimationFrame(frame); } };
+  window.addEventListener("resize", () => globeKick());
   function frame(now) {
+    if ((leve || still) && drawn) { running = false; return; }
     requestAnimationFrame(frame);
     if (!visible || document.hidden || now - last < 33) return;      // ~30 fps, parado fora da tela
     last = now;
-    const t = still ? 20 : now / 1000;
+    const t = leve || still ? 2.8 : now / 1000;
     const W = Math.round(view.clientWidth * (window.devicePixelRatio || 1));
     if (!W) return;
     if (view.width !== W) { view.width = view.height = W; off.width = off.height = W; }
@@ -1488,15 +1528,17 @@ function globeInit() {
       } else gl.uniform3f(u.loc, 0, 0, -1);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       ctx.drawImage(off, 0, 0);
+      drawn = true;
     } else {                                                      // sem WebGL (ou carregando): esfera simples
       const g = ctx.createRadialGradient(half - k * .35, half - k * .35, k * .1, half, half, k);
       g.addColorStop(0, "#5aa0e6"); g.addColorStop(1, "#0b2c5a");
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(half, half, k, 0, 2 * Math.PI); ctx.fill();
+      drawn = true;                                               // parado: não fica pedindo quadros à espera das texturas
     }
     ring(true);
     if (sun[2] >= 0) sunGlow();
   }
-  requestAnimationFrame(frame);
+  globeKick();
 }
 globeInit();
 
@@ -1743,7 +1785,7 @@ function mpMessage(m) {
       for (const c of pb.delta.changed || []) { const t = mpTxs.get(c[0]); if (t) { t.rate = c[1]; t.flags = c[2] ?? t.flags; } }
     }
     if (pb.blockTransactions) { clearTimeout(mpDrawTimer); mpDrawTimer = null; mpLayout(); mpDraw(); }
-    else if (!mpDrawTimer) mpDrawTimer = setTimeout(() => { mpDrawTimer = null; mpLayout(); mpDraw(); }, 500);   // no máx. 2×/s
+    else if (!mpDrawTimer) mpDrawTimer = setTimeout(() => { mpDrawTimer = null; mpLayout(); mpDraw(); }, leve ? 5000 : 500);   // 2×/s; no modo leve, a cada 5 s
   }
 }
 function mpRenderInfo() {
@@ -1806,7 +1848,7 @@ function mpDraw() {
     const hit = test(p.t.flags);
     let col = mpColor(p.t.rate);
     if (!hit) col = "#2a2d3e";
-    const age = p.t.born ? now - p.t.born : 1e9;
+    const age = p.t.born && !leve ? now - p.t.born : 1e9;      // modo leve: sem o brilho das novas
     ctx.globalAlpha = 1;
     ctx.fillStyle = col;
     const px = p.x * cell + gap / 2, py = (MP_GRID - p.y - p.s) * cell + gap / 2, sz = p.s * cell - gap;
