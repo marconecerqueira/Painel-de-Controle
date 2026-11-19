@@ -79,6 +79,15 @@ base_url = "https://parasite.space"
 # my_pools = ["parasite"]               # slugs extras para o filtro "Minhas pools"
 # base_url = "https://mempool.space"    # ou o seu próprio mempool (Umbrel/Start9)
 
+# ---------------------------------------------------------------- hora local e tempo
+# Cartão abaixo do gráfico. Sem esta seção, usa a localização do aparelho que abre o painel.
+# [location]
+# name = "Porto"
+# country = "Portugal"
+# country_code = "PT"
+# lat = 41.1496
+# lon = -8.611
+
 # ---------------------------------------------------------------- alertas
 # Passo a passo: docs/alertas-telegram.md. Vazio = alertas só no painel.
 [telegram]

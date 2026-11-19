@@ -1151,15 +1151,29 @@ function wxIcon(kind, day) {
   }[kind] || sky(32, 32, 13);
   return `<svg viewBox="0 0 64 64">${body}</svg>`;
 }
-let wxLoc = null, wxLocAt = 0;
+let wxLoc = null, wxLocAt = 0, wxTz = undefined;   // wxTz: fuso do local fixo (vem da Open-Meteo); undefined = o do aparelho
 const wxFlag = cc => /^[A-Z]{2}$/.test(cc || "") ? String.fromCodePoint(...[...cc].map(c => 127397 + c.charCodeAt(0))) + " " : "";
 function wxTick() {
-  const now = new Date();
-  const hm = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const now = new Date(), tz = wxTz ? { timeZone: wxTz } : {};
+  let hm, date;
+  try {
+    hm = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", ...tz });
+    date = now.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric", ...tz });
+  } catch (e) { wxTz = undefined; return wxTick(); }   // fuso desconhecido pelo navegador
   document.getElementById("wx-time").innerHTML = `${hm}<small>:${String(now.getSeconds()).padStart(2, "0")}</small>`;
-  document.getElementById("wx-date").textContent = now.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  document.getElementById("wx-date").textContent = date;
+}
+// local fixo no config.toml ([location], ex.: o hosting no Porto); sem ele, o do aparelho
+async function wxFixed() {
+  try {
+    const r = await fetch("/api/location", { cache: "no-store" });
+    const l = r.ok ? (await r.json()).location : null;
+    return l ? { lat: l.lat, lon: l.lon, city: l.name, country: l.country, cc: l.country_code, approx: false, fixed: true } : null;
+  } catch (e) { return null; }
 }
 async function wxLocate() {
+  const fixed = await wxFixed();
+  if (fixed) return fixed;
   const coords = await new Promise(res => {
     if (!navigator.geolocation) return res(null);
     const t = setTimeout(() => res(null), 20000);               // sem resposta ao pedido de permissão
@@ -1182,7 +1196,9 @@ async function loadWeather() {
     const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${L.lat.toFixed(4)}&longitude=${L.lon.toFixed(4)}`
       + "&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,is_day&wind_speed_unit=kmh&timezone=auto");
     if (!r.ok) throw new Error(r.status);
-    const c = (await r.json()).current;
+    const w = await r.json(), c = w.current;
+    const tz = L.fixed && w.timezone ? w.timezone : undefined;   // hora local do hosting, não a de quem abre o painel
+    if (tz !== wxTz) { wxTz = tz; wxTick(); }
     const [kind, desc] = WX_CODES[c.weather_code] || ["cloudy", "—"];
     const day = c.is_day !== 0;
     document.getElementById("wx-icon").innerHTML = wxIcon(kind, day);
@@ -1192,8 +1208,9 @@ async function loadWeather() {
     document.getElementById("wx-wind").innerHTML = `${nf(c.wind_speed_10m, 0)} <small>km/h</small>`;
     document.getElementById("wx-hum").innerHTML = `${nf(c.relative_humidity_2m, 0)} <small>%</small>`;
     document.querySelector(".wx").setAttribute("aria-label", `Hora local e tempo em ${L.city}: ${desc}, ${nf(c.temperature_2m, 0)} °C`);
-    document.getElementById("wx-note").textContent = `Tempo: Open-Meteo · atualizado às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
-      + (L.approx ? " · local aproximado pelo IP (permita a localização no navegador para mais precisão)" : "");
+    document.getElementById("wx-note").textContent = `Tempo: Open-Meteo · atualizado às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", ...(wxTz ? { timeZone: wxTz } : {}) })}`
+      + (L.fixed ? ` · hora e tempo do local fixo: ${L.city} (config.toml)`
+        : L.approx ? " · local aproximado pelo IP (permita a localização no navegador para mais precisão)" : "");
   } catch (e) {
     document.getElementById("wx-desc").textContent = "Tempo indisponível agora";
     if (!wxLoc) document.getElementById("wx-place").textContent = "Localização indisponível";

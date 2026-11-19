@@ -65,6 +65,7 @@ class Config:
     mempool_url: str = "https://mempool.space"
     block_pools: list[str] = field(default_factory=list)  # slugs extras no filtro "Minhas pools"
     energy_eur_kwh: float | None = None     # [finance]: tarifa de energia
+    location: dict | None = None            # [location]: local fixo do cartão de tempo (senão, o do aparelho)
 
 
 def _positive(m: dict, key: str, mid: str, where: str | None = None) -> float | None:
@@ -86,6 +87,29 @@ def _parse_start(v, mid: str) -> float | None:
     except ValueError:
         raise ConfigError(f'máquina \'{mid}\': rental_start inválido, use "AAAA-MM-DD HH:MM"') from None
     return dt.timestamp()   # sem fuso = hora local do servidor
+
+
+def _location(raw: dict) -> dict | None:
+    """[location]: name, lat, lon obrigatórios; country e country_code opcionais."""
+    loc = raw.get("location")
+    if not loc:
+        return None
+    if not isinstance(loc, dict):
+        raise ConfigError("[location] deve ser uma seção com name, lat e lon")
+    name = str(loc.get("name") or "").strip()
+    try:
+        lat, lon = float(loc["lat"]), float(loc["lon"])
+    except (KeyError, TypeError, ValueError):
+        raise ConfigError("[location] precisa de lat e lon numéricos (ex.: lat = 41.1496, lon = -8.611)") from None
+    if not name:
+        raise ConfigError('[location] precisa de name (ex.: name = "Porto")')
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        raise ConfigError("[location] lat deve estar entre -90 e 90, e lon entre -180 e 180")
+    cc = str(loc.get("country_code") or "").strip().upper()
+    if cc and not re.fullmatch(r"[A-Z]{2}", cc):
+        raise ConfigError('[location] country_code deve ter 2 letras (ex.: "PT")')
+    return {"name": name, "country": str(loc.get("country") or "").strip(), "country_code": cc or None,
+            "lat": lat, "lon": lon}
 
 
 def load_config(path: str | Path) -> Config:
@@ -197,4 +221,5 @@ def parse_config(raw: dict, base_dir: Path | None = None) -> Config:
         mempool_url=mempool_url,
         block_pools=block_pools,
         energy_eur_kwh=energy,
+        location=_location(raw),
     )

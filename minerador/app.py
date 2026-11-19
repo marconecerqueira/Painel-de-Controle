@@ -87,6 +87,11 @@ def create_app(cfg: Config, start_collector: bool = True) -> FastAPI:
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e)) from e
 
+    @app.get("/api/location")
+    async def location() -> dict:
+        """Local fixo do cartão de tempo ([location] no config); null = usar o do aparelho."""
+        return {"location": cfg.location}
+
     @app.get("/api/blocks/pools")
     async def block_pools() -> dict:
         return await blocks.pool_list()

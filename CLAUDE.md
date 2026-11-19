@@ -53,7 +53,8 @@ Todos os endpoints `POST` exigem o cabeçalho `X-Minerador: 1`, que funciona com
 O Python não tem cliente websocket. A base vem de `mempool_url`, e os bits de flags seguem `TransactionFlags` do mempool.
 
 O cartão **hora local e tempo**, por baixo do gráfico de hashrate, também roda só no navegador:
-- localização pelo GPS do aparelho; se a permissão for negada, aproximada pelo IP via BigDataCloud `reverse-geocode-client`;
+- se o `config.toml` tiver `[location]` (exposto em `/api/location`), usa esse local fixo, e a hora mostrada passa a ser a do fuso dele (vem da Open-Meteo). O hosting no Porto está configurado assim;
+- senão, localização pelo GPS do aparelho; se a permissão for negada, aproximada pelo IP via BigDataCloud `reverse-geocode-client`;
 - tempo pela Open-Meteo, com códigos WMO → ícone SVG animado.
 
 Ambas as APIs são sem chave. O middleware em `app.py` força `Cache-Control: no-cache` em tudo que não é `/api/`, porque o Safari mostrava ícones antigos.
