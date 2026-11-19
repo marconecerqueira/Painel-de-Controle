@@ -46,7 +46,11 @@ Fluxo de dados:
 
 Todos os endpoints `POST` exigem o cabeçalho `X-Minerador: 1`, que funciona como proteção CSRF via CORS. O front-end e o app de barra de menu já o enviam.
 
-**Front-end:** `minerador/static/index.html` é um arquivo único (HTML + CSS + JS puro, sem framework, sem build). As cores são tokens CSS em `:root`, redefinidos em `prefers-color-scheme: dark`; as fontes Barlow são servidas localmente de `static/fonts/`. O painel faz polling de `/api/status`, `/api/history` e `/api/blocks` com `setInterval`. Os blocos são desenhados como cubos 3D neon em CSS: os que estão na fila ficam à esquerda e os minerados à direita. A variável `--t` mantém a fase das animações quando a lista é redesenhada. Exceção a "tudo passa pelo backend": a seção **Mempool** (Goggles em canvas, taxa mínima, memória, não confirmadas e o gráfico de transações recebidas) liga o **navegador direto** ao mempool.space:
+**Front-end:** `minerador/static/index.html` é um arquivo único (HTML + CSS + JS puro, sem framework, sem build). As cores são tokens CSS em `:root`, redefinidos em `prefers-color-scheme: dark`; as fontes Barlow são servidas localmente de `static/fonts/`. O painel faz polling de `/api/status`, `/api/history` e `/api/blocks` com `setInterval`. Os blocos são desenhados como cubos 3D neon em CSS: os que estão na fila ficam à esquerda e os minerados à direita. A variável `--t` mantém a fase das animações quando a lista é redesenhada. Logos das pools vêm de `{mempool}/resources/mining-pools/{slug}.svg`. Exceções: defisurfers usa ⛏️; a Hash Commander é carregada do site dela e **não** é copiada para o repo, porque o arquivo proíbe redistribuição. A seta `.neo-center` volta a fileira para a divisória fila | minerados.
+
+**Festa:** `festaCheck` dispara fogos (canvas) para blocos `found_by_me`/`paid_me` das últimas 6 h ainda não vistos neste aparelho (localStorage `minerador.festa.vistos`). `festaPoll` consulta `view=minhas` a cada 3 min. Demonstração com `?festa=1`.
+
+Exceção a "tudo passa pelo backend": a seção **Mempool** (Goggles em canvas, taxa mínima, memória, não confirmadas e o gráfico de transações recebidas) liga o **navegador direto** ao mempool.space:
 - websocket `/api/v1/ws` com `track-mempool-block: 0`, recebendo deltas;
 - REST `/api/v1/statistics/2h`.
 

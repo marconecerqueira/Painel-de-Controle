@@ -468,9 +468,50 @@
   /* bloco novo acabou de chegar: cai na cadeia com um clarão */
   .neo-item.arrived .neo-scene { animation: neo-pop 1.1s ease-out; }
   @keyframes neo-pop { 0% { transform: translateY(-40px) scale(.7); opacity: 0; filter: brightness(2.2); } 60% { opacity: 1; filter: brightness(1.6); } 100% { transform: translateY(4px) scale(1); filter: none; } }
+  /* símbolo da pool (logo do mempool.space ou da própria pool) */
+  .plogo { display: inline-block; width: 1.25em; height: 1.25em; margin-right: .4em; vertical-align: -.25em; object-fit: contain; border-radius: 3px; }
+  .plogo.emoji { width: auto; height: auto; font-size: 1.05em; vertical-align: -.05em; text-shadow: none; }
+  .neo-cap .plogo { width: 1.3em; height: 1.3em; filter: drop-shadow(0 0 4px rgba(227,179,65,.45)); }
+  .blocks-table .plogo { width: 18px; height: 18px; vertical-align: -4px; }
+  .neo .tag.found { background: linear-gradient(90deg, #e3b341, #ffd76a); color: #2a1c00; font-weight: 600; }
+  .neo-item.found .neo-ring::before { border-width: 3px; box-shadow: 0 0 26px var(--rc), inset 0 0 30px var(--rc); }
+  /* seta "voltar ao centro": aparece do lado onde ficou a divisória fila | minerados */
+  .neo-center { position: absolute; top: calc(38px + var(--s) * .55); z-index: 4; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center;
+    border: 1.5px solid rgba(167,243,196,.75); background: rgba(7,14,11,.82); color: #c9ffdc; cursor: pointer;
+    box-shadow: 0 0 18px rgba(74,222,128,.45); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    transition: opacity .25s ease, transform .25s ease; animation: neo-nudge 1.6s ease-in-out infinite; }
+  .neo-center[hidden] { display: none; }
+  .neo-center.left { left: 10px; } .neo-center.right { right: 10px; }
+  .neo-center svg { width: 22px; height: 22px; }
+  .neo-center.left svg { transform: scaleX(-1); }
+  .neo-center:hover { background: rgba(20,60,35,.92); }
+  .neo-center:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  @keyframes neo-nudge { 0%, 100% { translate: 0 0; } 50% { translate: var(--nx, 3px) 0; } }
+  .neo-center.left { --nx: -3px; }
   .neo-key { display: flex; gap: 6px 16px; flex-wrap: wrap; padding: 0 20px 14px; font-size: 12.5px; color: rgba(234,255,241,.6); }
   .neo-key i { display: inline-block; width: 11px; height: 11px; margin-right: 6px; vertical-align: -1px; border-radius: 2px; }
   @media (max-width: 560px) { .neo { --s: 118px; } .neo-row { padding-left: 12px; padding-right: 12px; } }
+
+  /* ---------------- festa: fogos de artifício quando uma máquina/aluguel seu acha um bloco */
+  .festa { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; background: rgba(2,6,4,.55);
+    animation: festa-in .4s ease-out; cursor: pointer; }
+  .festa[hidden] { display: none; }
+  .festa canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .festa-card { position: relative; z-index: 1; text-align: center; color: #fff; padding: 26px 34px 22px; border-radius: 18px; max-width: min(92vw, 520px);
+    background: radial-gradient(ellipse at 50% 0%, rgba(227,179,65,.32), transparent 70%), rgba(8,16,12,.86);
+    box-shadow: 0 0 0 1.5px rgba(227,179,65,.75), 0 0 60px rgba(227,179,65,.45); animation: festa-pop .7s cubic-bezier(.2,1.4,.4,1); }
+  .festa-coin { width: 92px; height: 92px; margin: -70px auto 6px; border-radius: 50%; display: grid; place-items: center;
+    font: 700 58px/1 var(--cond); color: #fff7d6; background: radial-gradient(circle at 35% 30%, #ffe48a, #e3a01b 55%, #8a5a06);
+    box-shadow: 0 0 0 4px #ffd76a, 0 0 40px rgba(255,200,60,.9); text-shadow: 0 2px 4px rgba(90,50,0,.6); animation: festa-spin 2.4s ease-in-out infinite; }
+  .festa-t { font: 700 34px/1.1 var(--cond); letter-spacing: .04em; text-transform: uppercase; color: #ffe08a; text-shadow: 0 0 18px rgba(255,200,60,.7); }
+  .festa-h { margin-top: 6px; font: 700 46px/1 var(--cond); font-variant-numeric: tabular-nums; }
+  .festa-d { margin-top: 8px; font-size: 16px; color: rgba(255,255,255,.88); line-height: 1.45; }
+  .festa-d b { color: #a7f3c4; }
+  .festa-x { margin-top: 14px; font-size: 12.5px; color: rgba(255,255,255,.55); }
+  @keyframes festa-in { from { opacity: 0; } }
+  @keyframes festa-pop { from { transform: scale(.4); opacity: 0; } }
+  @keyframes festa-spin { 0%, 100% { transform: rotateY(0); } 50% { transform: rotateY(180deg); } }
+  @media (prefers-reduced-motion: reduce) { .festa, .festa-card, .festa-coin { animation: none; } }
 
   /* ---------------- mempool ao vivo (no estilo do mempool.space): Goggles + taxa, memória, fila e transações recebidas */
   .mp { --mp-bg: #13162a; --mp-blue: #3b74f2; --mp-ink: #e8ebf5; --mp-muted: #8b91ab; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 16px; }
@@ -1496,22 +1537,35 @@ const NEO_MAX_MINED = 24;                        // a lista completa fica em "Ve
 const H = n => n.toLocaleString("pt-BR");
 const feeFmt = f => f == null ? "—" : nf(f, f < 10 ? 1 : 0);
 let neoTop = null;
+// símbolo de cada pool: logos do mempool.space; as duas pools fora do mempool usam o ícone do próprio site
+// (o da Hash Commander é carregado de lá, não copiado: o arquivo proíbe redistribuição)
+const POOL_ICONS = { defisurfers: "⛏️", hashcommander: "https://hashcommander-pool.duckdns.org/favicon.svg" };
+function poolLogo(b) {
+  const slug = String(b.pool_slug || "unknown");
+  const own = POOL_ICONS[slug];
+  if (own && !own.startsWith("http")) return `<span class="plogo emoji" aria-hidden="true">${own}</span>`;
+  const src = own || `${mempoolBase}/resources/mining-pools/${encodeURIComponent(slug)}.svg`;
+  return `<img class="plogo" src="${esc(src)}" alt="" loading="lazy" decoding="async" onerror="this.remove()">`;
+}
+function blockTags(b) {
+  return (b.coin !== "BTC" ? `<span class="tag coin">${esc(b.coin)}</span>` : "")
+    + (b.mine ? '<span class="tag mine">sua pool</span>' : "")
+    + (b.found_by_me ? '<span class="tag found">🎉 achado por você</span>' : b.paid_me ? '<span class="tag paid">pagou você</span>' : "");
+}
 function neoMined(b, d, i, arrived) {
   const url = b.explorer_url || (b.hash ? `${d.mempool_url}/block/${b.hash}` : null);
   const tag = url ? "a" : "div";
   const attrs = url ? ` href="${esc(url)}" target="_blank" rel="noopener"` : "";
   const pool = esc(POOL_NAMES[b.pool_slug] || b.pool_name);
   const coin = esc(b.coin || "BTC");
-  const tags = (b.coin !== "BTC" ? `<span class="tag coin">${coin}</span>` : "")
-    + (b.mine ? '<span class="tag mine">sua pool</span>' : "")
-    + (b.paid_me || b.found_by_me ? '<span class="tag paid">pagou você</span>' : "");
+  const tags = blockTags(b), logo = poolLogo(b);
   const label = `Bloco ${H(b.height)}, minerado por ${b.pool_name}, ${b.ts ? fmtTime(b.ts, "", true) : "data desconhecida"}`;
-  return `<${tag} class="neo-item mined${b.mine ? " mine" : ""}${arrived ? " arrived" : ""}"${attrs} style="--o:${-(i * .37).toFixed(2)}s" aria-label="${esc(label)}">
+  return `<${tag} class="neo-item mined${b.mine ? " mine" : ""}${b.found_by_me || b.paid_me ? " found" : ""}${arrived ? " arrived" : ""}"${attrs} style="--o:${-(i * .37).toFixed(2)}s" aria-label="${esc(label)}">
     <div class="neo-scene" aria-hidden="true">
       <div class="neo-float"><div class="neo-cube">
         <div class="f front"><div class="lbl">Altura do bloco</div><div class="big">${H(b.height)}</div>
           <div class="soft" data-ago="${b.ts || ""}">${blockWhen(b.ts)}</div>${b.tx_count == null ? "" : `<div class="txs"><b>${H(b.tx_count)}</b> TX</div>`}
-          <div class="badge">${pool}</div></div>
+          <div class="badge">${logo}${pool}</div></div>
         <div class="f right"><div class="lbl">Recompensa</div><div class="mid">${btc(b.reward_sats)}</div><div class="soft">${coin}</div>
           ${b.fees_sats != null ? `<div class="soft" style="margin-top:5px">taxas ${btc(b.fees_sats)}</div>` : ""}
           ${b.median_fee != null ? `<div class="soft">mediana ${feeFmt(b.median_fee)} sat/vB</div>` : ""}</div>
@@ -1520,7 +1574,7 @@ function neoMined(b, d, i, arrived) {
       <div class="neo-ring"><i></i></div>
     </div>
     <div class="neo-h">#${H(b.height)}</div>
-    <div class="neo-cap" title="${pool}">${pool}</div>
+    <div class="neo-cap" title="${pool}">${logo}${pool}</div>
     ${b.worker ? `<div class="neo-who">por ${esc(b.worker)}</div>` : ""}
     ${tags ? `<div class="tags">${tags}</div>` : ""}
   </${tag}>`;
@@ -1563,6 +1617,8 @@ function neoChain(d, pending, nextHeight) {
   const more = d.blocks.length > NEO_MAX_MINED ? ` · mostrando ${NEO_MAX_MINED} de ${d.blocks.length} (todos em "Ver como lista")` : "";
   return `<div class="neo" style="--t:${(performance.now() / 1000).toFixed(2)}">
     <div class="neo-row" tabindex="0" aria-label="${pending.length ? "Próximos blocos na fila e blocos minerados" : "Blocos, do mais novo para o mais velho"}">${queue}${sep}${mined}</div>
+    <button class="neo-center" type="button" hidden aria-label="${pending.length ? "Voltar ao centro: divisória entre a fila e os minerados" : "Voltar ao bloco mais novo"}"
+      title="Voltar ao centro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>
     <div class="neo-key">${pending.length ? '<span><i style="background:#4ade80"></i>na fila, ainda não minerado (projeção do mempool)</span>' : ""}
       <span><i style="background:#0f3a24;box-shadow:inset 0 0 0 1.5px #4ade80"></i>minerado</span>
       <span><i style="background:rgba(227,179,65,.3);box-shadow:inset 0 0 0 1.5px #e3b341"></i>pool que achou o bloco${esc(more)}</span></div>
@@ -1579,12 +1635,10 @@ function renderBlocks(d) {
   const rows = d.blocks.map(b => {
     const url = b.explorer_url || (b.hash ? `${d.mempool_url}/block/${b.hash}` : null);
     const link = url ? `<a href="${esc(url)}" target="_blank" rel="noopener">${b.height.toLocaleString("pt-BR")}</a>` : b.height.toLocaleString("pt-BR");
-    const tags = (b.coin !== "BTC" ? `<span class="tag coin">${esc(b.coin)}</span>` : "")
-      + (b.mine ? '<span class="tag mine">sua pool</span>' : "")
-      + (b.paid_me || b.found_by_me ? '<span class="tag paid">pagou você</span>' : "");
+    const tags = blockTags(b);
     const when = b.ts ? `<span title="${fmtTime(b.ts, "", true)}">${blockWhen(b.ts)}</span>` : "—";
     return `<tr class="${b.mine ? "mine" : ""}"><td>${link}</td><td>${when}</td>
-      <td class="pool">${esc(POOL_NAMES[b.pool_slug] || b.pool_name)}${tags}${b.worker ? `<span class="who">Achado por ${esc(b.worker)}</span>` : ""}</td>
+      <td class="pool">${poolLogo(b)}${esc(POOL_NAMES[b.pool_slug] || b.pool_name)}${tags}${b.worker ? `<span class="who">Achado por ${esc(b.worker)}</span>` : ""}</td>
       <td class="num">${btc(b.reward_sats)}${b.reward_sats != null ? ` <small class="muted">${esc(b.coin)}</small>` : ""}</td>
       <td class="num hide-sm">${btc(b.fees_sats)}${b.fees_sats != null ? ` <small class="muted">${esc(b.coin)}</small>` : ""}</td>
       <td class="num hide-sm">${b.tx_count == null ? "—" : b.tx_count.toLocaleString("pt-BR")}</td></tr>`;
@@ -1602,7 +1656,32 @@ function renderBlocks(d) {
   if (open) body.querySelector("details.tbl").open = true;
   const ch = body.querySelector(".neo-row"), sep = ch?.querySelector(".neo-sep");
   // primeira vez: tracejado no meio da tela, com os próximos blocos à esquerda e os minerados à direita
-  if (ch) ch.scrollLeft = scroll ?? (sep ? sep.getBoundingClientRect().left - ch.getBoundingClientRect().left - ch.clientWidth / 2 : 0);
+  if (ch) { ch.scrollLeft = scroll ?? neoCenterX(ch); neoCenterInit(ch); }
+  festaCheck(d.blocks);
+}
+// ponto "centro" da fileira: a divisória fila | minerados (ou o começo, sem fila)
+function neoCenterX(ch) {
+  const sep = ch.querySelector(".neo-sep");
+  if (!sep) return 0;
+  return ch.scrollLeft + sep.getBoundingClientRect().left - ch.getBoundingClientRect().left - ch.clientWidth / 2;
+}
+// seta que aparece quando os blocos foram puxados para longe do centro; aponta para onde ele ficou
+function neoCenterInit(ch) {
+  const btn = ch.parentElement.querySelector(".neo-center");
+  if (!btn) return;
+  const update = () => {
+    const off = neoCenterX(ch) - ch.scrollLeft;               // >0: o centro ficou à direita
+    const far = Math.abs(off) > 90;
+    btn.hidden = !far;
+    btn.classList.toggle("right", off > 0);
+    btn.classList.toggle("left", off <= 0);
+  };
+  ch.addEventListener("scroll", update, { passive: true });
+  btn.addEventListener("click", () => {
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    ch.scrollTo({ left: Math.max(0, neoCenterX(ch)), behavior: reduce ? "auto" : "smooth" });
+  });
+  update();
 }
 // ------------------------------------------------------------------ mempool ao vivo (direto do mempool.space, como na página deles)
 // websocket: mempoolInfo (taxa mínima, memória, nº de transações) + transações do próximo bloco projetado (Goggles).
@@ -1855,6 +1934,122 @@ function mpStart() {
     if (document.hidden) { const ws = mpWs; mpWs = null; ws?.close(); clearTimeout(mpRetryTimer); }   // aba escondida: desliga o ao vivo
     else { mpConnect(); mpLoadStats(); }
   });
+}
+// ------------------------------------------------------------------ festa: bloco achado por máquina ou aluguel seu
+// Dispara quando aparece um bloco com found_by_me/paid_me que este aparelho ainda não comemorou
+// (só blocos das últimas 6 h). Verifica "Minhas pools" a cada 3 min, qualquer que seja o filtro na tela.
+// Demonstração: abra o painel com ?festa=1
+const FESTA_KEY = "minerador.festa.vistos";
+let festaKnown = null, festaTimer = null;
+function festaCheck(blocks) {
+  if (!festaKnown) {
+    try { festaKnown = new Set(JSON.parse(localStorage.getItem(FESTA_KEY) || "[]")); } catch (e) { festaKnown = new Set(); }
+  }
+  const now = Date.now() / 1000;
+  let novo = null, mudou = false;
+  for (const b of blocks || []) {
+    if (!b.found_by_me && !b.paid_me) continue;
+    const k = `${b.coin || "BTC"}:${b.height}`;
+    if (festaKnown.has(k)) continue;
+    festaKnown.add(k); mudou = true;
+    if (b.ts && now - b.ts < 6 * 3600 && (!novo || b.height > novo.height)) novo = b;
+  }
+  if (mudou) { try { localStorage.setItem(FESTA_KEY, JSON.stringify([...festaKnown].slice(-300))); } catch (e) {} }
+  if (novo) festa(novo);
+}
+async function festaPoll() {
+  if (document.hidden) return;
+  try {
+    const r = await fetch("/api/blocks?view=minhas", { cache: "no-store" });
+    if (r.ok) festaCheck((await r.json()).blocks);
+  } catch (e) {}
+}
+function festa(b, demo = false) {
+  let el = document.getElementById("festa");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "festa"; el.className = "festa"; el.hidden = true;
+    el.setAttribute("role", "alertdialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "festa-t");
+    document.body.append(el);
+  }
+  el.dispatchEvent(new Event("festa-fim"));                       // fecha uma festa anterior
+  const pool = POOL_NAMES[b.pool_slug] || b.pool_name || "";
+  const coin = b.coin || "BTC";
+  el.innerHTML = `<canvas aria-hidden="true"></canvas><div class="festa-card">
+    <div class="festa-coin" aria-hidden="true">₿</div>
+    <div class="festa-t" id="festa-t">Bloco encontrado!${demo ? " <small style='font-size:.5em;opacity:.7'>(demonstração)</small>" : ""}</div>
+    <div class="festa-h">#${H(b.height)}</div>
+    <div class="festa-d">${poolLogo(b)}${esc(pool)}${b.worker ? ` · por <b>${esc(b.worker)}</b>` : ""}${coin !== "BTC" ? ` · ${esc(coin)}` : ""}
+      ${b.reward_sats != null ? `<br>Recompensa do bloco: <b>${btc(b.reward_sats)} ${esc(coin)}</b>` : ""}</div>
+    <div class="festa-x">Toque em qualquer lugar ou tecle Esc para fechar</div></div>`;
+  el.hidden = false;
+  const stop = fireworks(el.querySelector("canvas"));
+  const timer = demo ? 0 : setTimeout(() => close(), 30000);   // a demonstração só fecha com clique/Esc
+  const onKey = e => { if (e.key === "Escape") close(); };
+  function close() {
+    stop(); clearTimeout(timer); el.hidden = true;
+    document.removeEventListener("keydown", onKey); el.removeEventListener("festa-fim", close); el.onclick = null;
+  }
+  el.onclick = close;
+  el.addEventListener("festa-fim", close);
+  document.addEventListener("keydown", onKey);
+}
+// fogos de artifício: foguetes sobem, explodem em faíscas com gravidade e rastro (canvas transparente)
+function fireworks(cv) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return () => {};
+  const ctx = cv.getContext("2d"), dpr = Math.min(2, window.devicePixelRatio || 1);
+  let W = 0, Hh = 0;
+  const size = () => { W = cv.clientWidth; Hh = cv.clientHeight; cv.width = W * dpr; cv.height = Hh * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); };
+  size(); window.addEventListener("resize", size);
+  const COLORS = ["#ffd76a", "#ffb347", "#4ade80", "#a7f3c4", "#7dd3fc", "#f472b6", "#fff4c2", "#ff6b6b", "#c4b5fd"];
+  const pick = () => COLORS[Math.floor(Math.random() * COLORS.length)];
+  const G = 320, rockets = [], sparks = [];
+  let raf = 0, last = performance.now(), nextLaunch = 0;
+  const t0 = last;
+  const launch = () => rockets.push({ x: W * (.12 + Math.random() * .76), y: Hh + 5, vx: (Math.random() - .5) * 80,
+    vy: -Math.sqrt(2 * G * Hh * (.45 + Math.random() * .35)), c: pick() });
+  const explode = r => {
+    const n = 80 + Math.floor(Math.random() * 60), c2 = pick(), ring = Math.random() < .3, power = 140 + Math.random() * 120;
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, sp = ring ? power : power * (.25 + Math.random() * .8);
+      sparks.push({ x: r.x, y: r.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, decay: .45 + Math.random() * .45,
+                    c: i % 3 ? r.c : c2, s: 1.4 + Math.random() * 1.6, tw: Math.random() < .25 });
+    }
+  };
+  function frame(now) {
+    raf = requestAnimationFrame(frame);
+    const dt = Math.min(.05, (now - last) / 1000); last = now;
+    if (now > nextLaunch && now - t0 < 16000) {
+      launch(); if (Math.random() < .4) launch();
+      nextLaunch = now + 320 + Math.random() * 520;
+    }
+    ctx.globalCompositeOperation = "destination-out";             // apaga aos poucos = rastro
+    ctx.fillStyle = "rgba(0,0,0,.2)"; ctx.fillRect(0, 0, W, Hh);
+    ctx.globalCompositeOperation = "lighter";
+    for (let i = rockets.length - 1; i >= 0; i--) {
+      const r = rockets[i];
+      r.vy += G * dt; r.x += r.vx * dt; r.y += r.vy * dt;
+      ctx.globalAlpha = 1; ctx.fillStyle = r.c; ctx.beginPath(); ctx.arc(r.x, r.y, 2.3, 0, 7); ctx.fill();
+      if (r.vy > -30) { explode(r); rockets.splice(i, 1); }
+    }
+    for (let i = sparks.length - 1; i >= 0; i--) {
+      const p = sparks[i];
+      p.vx *= .983; p.vy = p.vy * .983 + 95 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= p.decay * dt;
+      if (p.life <= 0) { sparks.splice(i, 1); continue; }
+      ctx.globalAlpha = p.tw ? p.life * (.4 + .6 * Math.random()) : p.life;
+      ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    if (now - t0 > 16000 && !rockets.length && !sparks.length) cancelAnimationFrame(raf);
+  }
+  raf = requestAnimationFrame(frame);
+  return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", size); };
+}
+setTimeout(festaPoll, 8000);
+setInterval(festaPoll, 180000);
+if (new URLSearchParams(location.search).has("festa")) {
+  setTimeout(() => festa({ height: 977001, pool_slug: "hashcommander", pool_name: "Hash Commander", coin: "BCH",
+                           worker: "MMsCoin", reward_sats: 312643210 }, true), 1200);
 }
 async function loadBlocks() {
   try {

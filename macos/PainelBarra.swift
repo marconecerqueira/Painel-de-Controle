@@ -293,11 +293,10 @@ struct MatrixRain: View {
                     }
                 }
             } symbols: {
-                ForEach(0..<MatrixRain.glyphs.count, id: \.self) { i in
-                    MatrixRain.glyph(i, color: Theme.green).tag(i)
-                }
-                ForEach(0..<MatrixRain.glyphs.count, id: \.self) { i in
-                    MatrixRain.glyph(i, color: MatrixRain.headColor).tag(i + MatrixRain.glyphs.count)
+                // um ForEach só, com ids únicos: dois ForEach com os mesmos ids (0…n-1) derrubavam o app
+                ForEach(0..<(MatrixRain.glyphs.count * 2), id: \.self) { i in
+                    MatrixRain.glyph(i % MatrixRain.glyphs.count,
+                                     color: i < MatrixRain.glyphs.count ? Theme.green : MatrixRain.headColor).tag(i)
                 }
             }
         }
