@@ -622,8 +622,20 @@ func barImage(_ text: String, alert: Bool) -> NSImage {
     return image
 }
 
+/// O app só vive na barra de menu (sem janela nem Dock). Abrir o ícone de novo (Aplicações, Launchpad,
+/// Spotlight) com ele já rodando não fazia nada visível: agora abre o painel completo no navegador.
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        let saved = UserDefaults.standard.string(forKey: "panelURL") ?? "http://127.0.0.1:8080"
+        let base = saved.trimmingCharacters(in: .whitespaces).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        if let url = URL(string: base) { NSWorkspace.shared.open(url) }
+        return false
+    }
+}
+
 @main
 struct PainelBarraApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var store = Store()
 
     var body: some Scene {
