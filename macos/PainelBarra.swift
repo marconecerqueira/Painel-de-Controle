@@ -252,10 +252,14 @@ enum Theme {
     }
 }
 
-/// Chuva de caracteres verdes. Só roda com a janela aberta; parada com "Reduzir movimento".
+/// Chuva de caracteres verdes. Só anima com a janela à vista (aberta e não encoberta);
+/// parada com "Reduzir movimento". Os caracteres são símbolos resolvidos uma vez só:
+/// desenhar Text novo a cada quadro custava ~90% da thread principal, mesmo com a janela fechada.
 struct MatrixRain: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var onScreen = false
     private static let glyphs = Array("ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789₿").map { String($0) }
+    private static let headColor = Color(red: 0.85, green: 1.0, blue: 0.9)
 
     private static func rnd(_ i: Int) -> Double {
         let x = sin(Double(i) * 12.9898) * 43758.5453
@@ -263,13 +267,13 @@ struct MatrixRain: View {
     }
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 12.0, paused: reduceMotion)) { timeline in
+        TimelineView(.animation(minimumInterval: 1.0 / 12.0, paused: reduceMotion || !onScreen)) { timeline in
             Canvas { ctx, size in
                 let t: Double = timeline.date.timeIntervalSinceReferenceDate
                 let cell: CGFloat = 14
                 let cols = Int(size.width / cell) + 1
                 let rows = Int(size.height / cell) + 1
-                let glyphs = MatrixRain.glyphs
+                let n = MatrixRain.glyphs.count
                 for c in 0..<cols {
                     let speed: Double = 2.5 + MatrixRain.rnd(c) * 6.0          // linhas por segundo
                     let length: Int = 6 + Int(MatrixRain.rnd(c + 97) * 16.0)
@@ -281,15 +285,74 @@ struct MatrixRain: View {
                         if row < 0 || row >= rows { continue }
                         let fade: Double = k == 0 ? 1.0 : (1.0 - Double(k) / Double(length)) * 0.9
                         let flicker = (k == 0 || (c + row) % 5 == 0) ? tick : 0
-                        let gi = abs(c * 31 + row * 17 + flicker * 7) % glyphs.count
-                        let color: Color = k == 0 ? Color(red: 0.85, green: 1.0, blue: 0.9) : Theme.green
-                        let text = Text(glyphs[gi]).font(.system(size: 12, weight: .medium, design: .monospaced))
-                            .foregroundColor(color.opacity(fade))
-                        ctx.draw(text, at: CGPoint(x: CGFloat(c) * cell + cell / 2, y: CGFloat(row) * cell + cell / 2))
+                        let gi = abs(c * 31 + row * 17 + flicker * 7) % n
+                        let id: Int = k == 0 ? gi + n : gi                    // n… = cabeça clara
+                        guard let symbol = ctx.resolveSymbol(id: id) else { continue }
+                        ctx.opacity = fade
+                        ctx.draw(symbol, at: CGPoint(x: CGFloat(c) * cell + cell / 2, y: CGFloat(row) * cell + cell / 2))
                     }
+                }
+            } symbols: {
+                ForEach(0..<MatrixRain.glyphs.count, id: \.self) { i in
+                    MatrixRain.glyph(i, color: Theme.green).tag(i)
+                }
+                ForEach(0..<MatrixRain.glyphs.count, id: \.self) { i in
+                    MatrixRain.glyph(i, color: MatrixRain.headColor).tag(i + MatrixRain.glyphs.count)
                 }
             }
         }
+        .background(WindowVisibility(visible: $onScreen))
+    }
+
+    private static func glyph(_ i: Int, color: Color) -> some View {
+        Text(glyphs[i]).font(.system(size: 12, weight: .medium, design: .monospaced)).foregroundColor(color)
+    }
+}
+
+/// Avisa se a janela que contém a view está à vista: aberta e não encoberta.
+/// A janela do MenuBarExtra continua viva depois de fechada, então onAppear/onDisappear não bastam.
+struct WindowVisibility: NSViewRepresentable {
+    @Binding var visible: Bool
+
+    func makeNSView(context: Context) -> Probe {
+        let probe = Probe()
+        probe.onChange = { v in if visible != v { visible = v } }
+        return probe
+    }
+
+    func updateNSView(_ nsView: Probe, context: Context) {}
+
+    final class Probe: NSView {
+        var onChange: ((Bool) -> Void)?
+        private var tokens: [NSObjectProtocol] = []
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            for tk in tokens { NotificationCenter.default.removeObserver(tk) }
+            tokens = []
+            guard let w = window else { report(false); return }
+            let names: [Notification.Name] = [NSWindow.didChangeOcclusionStateNotification,
+                                              NSWindow.didBecomeKeyNotification, NSWindow.didResignKeyNotification,
+                                              NSWindow.willCloseNotification]
+            for name in names {
+                let tk = NotificationCenter.default.addObserver(forName: name, object: w, queue: .main) { [weak self] _ in
+                    self?.check()
+                }
+                tokens.append(tk)
+            }
+            check()
+        }
+
+        private func check() {
+            guard let w = window else { report(false); return }
+            report(w.isVisible && w.occlusionState.contains(.visible))
+        }
+
+        private func report(_ v: Bool) {
+            DispatchQueue.main.async { [weak self] in self?.onChange?(v) }
+        }
+
+        deinit { for tk in tokens { NotificationCenter.default.removeObserver(tk) } }
     }
 }
 
