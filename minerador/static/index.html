@@ -249,46 +249,148 @@
   .blocks-table td.pool { white-space: normal; }
   .blocks-notes { margin-top: 8px; font-size: 13px; color: var(--ink-2); }
 
-  /* cubos no estilo do mempool.space: frente + topo + lateral; cor = taxa, altura do preenchimento = quão cheio */
-  .chain { --d: 16px; --w: 124px; display: flex; gap: calc(var(--d) + 18px); overflow-x: auto; margin: 12px -16px 0; padding: 4px 16px 10px calc(16px + var(--d));
-    scroll-snap-type: x proximity; scrollbar-width: thin; scroll-padding-left: calc(16px + var(--d)); }
-  .blk { flex: 0 0 auto; width: var(--w); scroll-snap-align: start; text-align: center; color: inherit; text-decoration: none !important; }
-  .blk-h { display: block; font: 600 16px var(--cond); color: var(--accent); margin-bottom: calc(var(--d) + 4px); font-variant-numeric: tabular-nums; }
-  :root { --gold-block: #9c6f10; }
-  .cube { --e: #34413c; position: relative; width: var(--w); height: var(--w); color: #fff;
-    background: linear-gradient(to top, var(--c) var(--f), var(--e) var(--f)); transition: transform .15s ease; }
-  .cube::before { content: ""; position: absolute; left: 0; top: calc(-1 * var(--d)); width: 100%; height: var(--d);
-    transform-origin: bottom; transform: skewX(45deg); background: color-mix(in srgb, var(--e) 78%, #fff); }
-  .cube.full::before { background: color-mix(in srgb, var(--c) 72%, #fff); }
-  .cube::after { content: ""; position: absolute; top: 0; left: calc(-1 * var(--d)); width: var(--d); height: 100%;
-    transform-origin: right; transform: skewY(45deg); background: inherit; filter: brightness(.7); }
-  a.blk:hover .cube { transform: translateY(-3px); }
-  .cube-in { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
-    padding: 6px 4px; line-height: 1.25; text-shadow: 0 1px 2px rgba(0,0,0,.35); font-variant-numeric: tabular-nums; }
-  .cube-in .fee { font: 600 17px var(--cond); }
-  .cube-in .rng { font-size: 11.5px; opacity: .85; }
-  .cube-in .rw { font: 600 16px var(--cond); margin-top: 5px; }
-  .cube-in .rw small { font: 500 12px var(--cond); opacity: .85; }
-  .cube-in .tx, .cube-in .when { font-size: 12px; opacity: .9; }
-  .blk-pool { margin-top: 8px; font-size: 13px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .blk-who { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .blk .tags { justify-content: center; margin-top: 4px; }
-  .blk.mine .blk-pool::before { content: ""; display: block; width: 0; height: 0; margin: 0 auto 5px; border: 7px solid transparent; border-top: 0; border-bottom-color: var(--accent); }
-  .blk.mine .blk-pool { color: var(--ink); font-weight: 600; }
-  /* próximos blocos (na fila, ainda não minerados): dourado listrado, à esquerda do tracejado */
-  .blk.pending .blk-h { color: var(--gold-text); }
-  .blk.pending .cube-in { background: repeating-linear-gradient(135deg, rgba(255,255,255,.08) 0 7px, transparent 7px 14px); }
-  .blk.pending .blk-pool { color: var(--gold-text); font-weight: 600; }
-  /* tracejado no meio do vão (a lateral 3D do cubo minerado ocupa --d à esquerda dele); rótulos numa faixa acima dos cubos */
-  .chain:has(.chain-sep) { padding-top: 28px; }
-  .chain-sep { flex: 0 0 auto; position: relative; width: 0; margin: -22px 0 0 calc(-1 * var(--d)); border-left: 2px dashed color-mix(in srgb, var(--muted) 70%, transparent); }
-  .chain-sep span { position: absolute; top: 0; white-space: nowrap; font: 600 11.5px var(--cond); letter-spacing: .04em; text-transform: uppercase; }
-  .chain-sep .l { right: 8px; color: var(--gold-text); }
-  .chain-sep .r { left: 8px; color: var(--accent); }
-  .fee-key i.gold { width: 22px; background: repeating-linear-gradient(135deg, rgba(255,255,255,.18) 0 4px, transparent 4px 8px), var(--gold-block); }
-  .fee-key { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
-  .fee-key i { display: inline-block; width: 120px; height: 8px; border-radius: 999px; }
-  @media (max-width: 560px) { .chain { --w: 112px; } }
+  /* ---------------- cadeia de blocos em cubos neon: na fila (verde claro) | minerados (verde escuro + pool em dourado)
+     Sempre escura, nos dois temas. --t = relógio do navegador: as animações continuam na mesma fase quando a lista é redesenhada. */
+  .neo { --s: 140px; --n: #4ade80; --n-hi: #a7f3c4; --g: #e3b341; --t: 0; position: relative; margin-top: 12px; border-radius: 14px;
+    color: #eafff1; isolation: isolate; overflow: hidden;
+    background: radial-gradient(ellipse 50% 80% at 50% 35%, rgba(74,222,128,.13), transparent 70%),
+                radial-gradient(circle at 1px 1px, rgba(167,243,196,.13) 1px, transparent 1.5px) 0 0 / 22px 22px, #070e0b;
+    box-shadow: inset 0 0 0 1px rgba(74,222,128,.18); }
+  .neo-row { display: flex; align-items: flex-start; overflow-x: auto; padding: 38px 20px 14px; scroll-snap-type: x proximity;
+    scrollbar-width: thin; scrollbar-color: rgba(74,222,128,.45) transparent; }
+  .neo-row:focus-visible { outline: 2px solid var(--n); outline-offset: -4px; border-radius: 14px; }
+  .neo-item { flex: 0 0 auto; width: calc(var(--s) * 1.6); text-align: center; scroll-snap-align: center; color: inherit; text-decoration: none !important; }
+  .neo-scene { position: relative; height: calc(var(--s) * 1.55); perspective: 1000px; }
+  .neo-float { position: absolute; left: 50%; top: calc(var(--s) * .2); width: var(--s); height: var(--s); margin-left: calc(var(--s) / -2);
+    transform-style: preserve-3d; z-index: 2; animation: neo-float 4.2s ease-in-out infinite alternate;
+    animation-delay: calc(var(--t) * -1s + var(--o, 0s)); }
+  .neo-cube { position: absolute; inset: 0; transform-style: preserve-3d; transform: rotateX(-16deg) rotateY(-24deg);
+    animation: neo-sway 9s ease-in-out infinite alternate; animation-delay: calc(var(--t) * -1s + var(--o, 0s) * 2); }
+  @keyframes neo-float { from { transform: translateY(4px); } to { transform: translateY(-9px); } }
+  @keyframes neo-sway { from { transform: rotateX(-15deg) rotateY(-30deg); } to { transform: rotateX(-18deg) rotateY(-17deg); } }
+  .neo .f { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+    padding: 8px; line-height: 1.15; font-variant-numeric: tabular-nums; border: 1.5px solid rgba(74,222,128,.8); overflow: hidden;
+    background: linear-gradient(rgba(74,222,128,.11) 1px, transparent 1px) 0 0 / calc(var(--s) / 9) calc(var(--s) / 9),
+                linear-gradient(90deg, rgba(74,222,128,.11) 1px, transparent 1px) 0 0 / calc(var(--s) / 9) calc(var(--s) / 9),
+                linear-gradient(160deg, #0f3a24, #0a2418);
+    box-shadow: inset 0 0 26px rgba(74,222,128,.22), 0 0 20px rgba(74,222,128,.26); text-shadow: 0 0 8px rgba(74,222,128,.55); }
+  .neo .front { transform: translateZ(calc(var(--s) / 2)); }
+  .neo .right { transform: rotateY(90deg) translateZ(calc(var(--s) / 2)); filter: brightness(.78); }
+  .neo .top { transform: rotateX(90deg) translateZ(calc(var(--s) / 2)); filter: brightness(1.12); }
+  .neo .front::before { content: ""; position: absolute; inset: 8px; pointer-events: none; --b: rgba(167,243,196,.9);
+    background: linear-gradient(var(--b), var(--b)) 0 0 / 14px 2px, linear-gradient(var(--b), var(--b)) 0 0 / 2px 14px,
+      linear-gradient(var(--b), var(--b)) 100% 0 / 14px 2px, linear-gradient(var(--b), var(--b)) 100% 0 / 2px 14px,
+      linear-gradient(var(--b), var(--b)) 0 100% / 14px 2px, linear-gradient(var(--b), var(--b)) 0 100% / 2px 14px,
+      linear-gradient(var(--b), var(--b)) 100% 100% / 14px 2px, linear-gradient(var(--b), var(--b)) 100% 100% / 2px 14px;
+    background-repeat: no-repeat; }
+  .neo .lbl { font: 600 calc(var(--s) * .072) var(--cond); letter-spacing: .14em; text-transform: uppercase; color: var(--n-hi); }
+  .neo .lbl::before { content: ""; display: inline-block; width: .55em; height: .55em; margin-right: .45em; background: var(--n); box-shadow: 0 0 6px var(--n); vertical-align: .08em; }
+  .neo .big { font: 600 calc(var(--s) * .19) var(--cond); color: #fff; margin: 3px 0 2px; }
+  .neo .mid { font: 600 calc(var(--s) * .15) var(--cond); color: #fff; margin: 3px 0; }
+  .neo .soft { font-size: calc(var(--s) * .078); color: rgba(234,255,241,.75); }
+  .neo .txs { font-size: calc(var(--s) * .085); color: rgba(234,255,241,.85); margin-top: 2px; }
+  .neo .txs b { color: #fff; font-weight: 600; }
+  .neo .badge { margin-top: 7px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 2px 7px;
+    font: 600 calc(var(--s) * .072) var(--cond); letter-spacing: .12em; text-transform: uppercase; color: #ffe6a6;
+    border: 1.5px solid var(--g); border-radius: 5px; background: rgba(227,179,65,.16); box-shadow: 0 0 12px rgba(227,179,65,.4); text-shadow: 0 0 6px rgba(227,179,65,.6); }
+  .neo .right .lbl, .neo .top .lbl { font-size: calc(var(--s) * .062); }
+  /* na fila: verde claro; o próximo bloco "respira" */
+  .neo-item.next .f { border-color: rgba(187,247,208,.95); text-shadow: 0 0 6px rgba(10,60,30,.6);
+    background: linear-gradient(rgba(255,255,255,.13) 1px, transparent 1px) 0 0 / calc(var(--s) / 9) calc(var(--s) / 9),
+                linear-gradient(90deg, rgba(255,255,255,.13) 1px, transparent 1px) 0 0 / calc(var(--s) / 9) calc(var(--s) / 9),
+                linear-gradient(160deg, #6fe39c, #2f9d5a);
+    box-shadow: inset 0 0 26px rgba(255,255,255,.18), 0 0 24px rgba(74,222,128,.5); }
+  .neo-item.next.later .f { filter: saturate(.75) brightness(.86); }
+  .neo-item.next.later .right { filter: saturate(.75) brightness(.7); }
+  .neo-item.next.first .f { animation: neo-breathe 3.2s ease-in-out infinite alternate; animation-delay: calc(var(--t) * -1s); }
+  .neo-item.next .lbl { color: #f0fff5; }
+  .neo-item.next .lbl::before { background: #f0fff5; }
+  .neo-item.next .soft, .neo-item.next .txs { color: rgba(255,255,255,.92); }
+  @keyframes neo-breathe { from { box-shadow: inset 0 0 26px rgba(255,255,255,.18), 0 0 22px rgba(74,222,128,.45); }
+                           to   { box-shadow: inset 0 0 34px rgba(255,255,255,.3), 0 0 46px rgba(74,222,128,.85); } }
+  /* anel no chão: elipse com marcas girando (dourado = minerado, verde = na fila) */
+  .neo-ring { position: absolute; left: 50%; top: calc(var(--s) * .62); width: calc(var(--s) * 1.5); aspect-ratio: 1; margin-left: calc(var(--s) * -.75);
+    transform: scaleY(.3); --rc: var(--g); z-index: 1; pointer-events: none; }
+  .neo-item.next .neo-ring { --rc: var(--n); }
+  .neo-ring::before { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--rc);
+    box-shadow: 0 0 16px var(--rc), inset 0 0 26px color-mix(in srgb, var(--rc) 45%, transparent); opacity: .9; }
+  .neo-ring::after { content: ""; position: absolute; inset: 22%; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--rc) 40%, transparent), transparent 70%); }
+  .neo-ring i { position: absolute; inset: 7%; border-radius: 50%; animation: neo-spin 26s linear infinite; animation-delay: calc(var(--t) * -1s);
+    background: repeating-conic-gradient(var(--rc) 0 2.2deg, transparent 2.2deg 10deg);
+    -webkit-mask: radial-gradient(circle, transparent 78%, #000 79%, #000 92%, transparent 93%); mask: radial-gradient(circle, transparent 78%, #000 79%, #000 92%, transparent 93%); }
+  .neo-item.next .neo-ring i { animation-direction: reverse; animation-duration: 20s; }
+  @keyframes neo-spin { to { transform: rotate(360deg); } }
+  /* ligação entre cubos, com um ponto de luz andando da fila para a cadeia */
+  .neo-link { flex: 0 0 26px; position: relative; height: 2px; margin-top: calc(var(--s) * .72);
+    background: repeating-linear-gradient(90deg, rgba(74,222,128,.6) 0 6px, transparent 6px 11px); }
+  .neo-link i { position: absolute; top: -5px; left: 0; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%;
+    background: radial-gradient(circle, #eafff1 0 30%, var(--n) 55%, transparent 72%); box-shadow: 0 0 12px var(--n);
+    animation: neo-run 2.4s ease-in-out infinite; animation-delay: calc(var(--t) * -1s + var(--o, 0s)); }
+  @keyframes neo-run { 0% { left: 0; opacity: 0; } 15%, 85% { opacity: 1; } 100% { left: 100%; opacity: 0; } }
+  /* divisória "na fila | minerados" */
+  .neo-sep { flex: 0 0 0; align-self: stretch; position: relative; margin: -30px 14px 0; border-left: 2px dashed rgba(167,243,196,.35); }
+  .neo-sep span { position: absolute; top: 0; white-space: nowrap; font: 600 11.5px var(--cond); letter-spacing: .1em; text-transform: uppercase; }
+  .neo-sep .l { right: 9px; color: var(--n); }
+  .neo-sep .r { left: 9px; color: var(--g); }
+  .neo-h { font: 700 calc(var(--s) * .23) var(--cond); color: #fff; font-variant-numeric: tabular-nums; text-shadow: 0 0 18px rgba(167,243,196,.35); }
+  .neo-cap { margin-top: 1px; font: 600 calc(var(--s) * .11) var(--cond); color: var(--n); text-shadow: 0 0 10px rgba(74,222,128,.45); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .neo-item.mined .neo-cap { color: var(--g); text-shadow: 0 0 10px rgba(227,179,65,.4); }
+  .neo-who { font-size: 12px; color: rgba(234,255,241,.6); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .neo .tags { justify-content: center; margin-top: 4px; }
+  .neo .tag { background: rgba(74,222,128,.14); color: var(--n-hi); }
+  .neo .tag.mine, .neo .tag.paid { background: rgba(227,179,65,.2); color: #ffe6a6; }
+  .neo-item.mine .neo-ring::before { border-width: 3px; }
+  a.neo-item:hover .f { border-color: #fff; }
+  a.neo-item:focus-visible { outline: 2px solid var(--n); outline-offset: 2px; border-radius: 10px; }
+  /* bloco novo acabou de chegar: cai na cadeia com um clarão */
+  .neo-item.arrived .neo-scene { animation: neo-pop 1.1s ease-out; }
+  @keyframes neo-pop { 0% { transform: translateY(-40px) scale(.7); opacity: 0; filter: brightness(2.2); } 60% { opacity: 1; filter: brightness(1.6); } 100% { transform: translateY(4px) scale(1); filter: none; } }
+  .neo-key { display: flex; gap: 6px 16px; flex-wrap: wrap; padding: 0 20px 14px; font-size: 12.5px; color: rgba(234,255,241,.6); }
+  .neo-key i { display: inline-block; width: 11px; height: 11px; margin-right: 6px; vertical-align: -1px; border-radius: 2px; }
+  @media (max-width: 560px) { .neo { --s: 118px; } .neo-row { padding-left: 12px; padding-right: 12px; } }
+
+  /* ---------------- mempool ao vivo (no estilo do mempool.space): Goggles + taxa, memória, fila e transações recebidas */
+  .mp { --mp-bg: #13162a; --mp-blue: #3b74f2; --mp-ink: #e8ebf5; --mp-muted: #8b91ab; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 16px; }
+  .mp-card { background: var(--mp-bg); border-radius: 12px; padding: 18px 18px 14px; color: var(--mp-ink); min-width: 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,.04); }
+  .mp-title { display: block; text-align: center; font: 500 21px var(--text); color: var(--mp-blue); text-decoration: none !important; }
+  .mp-title svg { width: 18px; height: 18px; vertical-align: -2px; margin-left: 4px; }
+  .mp-seg { display: flex; justify-content: center; margin: 12px 0 14px; }
+  .mp-seg div { display: inline-flex; background: #1f5fd9; border-radius: 5px; overflow: hidden; flex-wrap: wrap; justify-content: center; }
+  .mp-seg button { border: 0; background: transparent; color: #fff; font: 500 15px var(--text); padding: 5px 13px; cursor: pointer; }
+  .mp-seg button[aria-pressed="true"] { background: #1243a8; }
+  .mp-seg button:focus-visible { outline: 2px solid #fff; outline-offset: -3px; }
+  .mp-box { position: relative; width: 100%; max-width: 560px; margin: 0 auto; aspect-ratio: 1; }
+  .mp-box canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
+  .mp-wait { position: absolute; inset: 0; display: grid; place-items: center; color: var(--mp-muted); font-size: 14px; text-align: center; padding: 20px; }
+  .mp-wait:empty { display: none; }
+  .mp-tip { position: absolute; z-index: 3; pointer-events: none; background: rgba(10,12,24,.94); color: var(--mp-ink); border-radius: 8px; padding: 8px 10px;
+    font-size: 12.5px; line-height: 1.45; white-space: nowrap; box-shadow: 0 4px 18px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.08); display: none; }
+  .mp-tip b { font-weight: 600; }
+  .mp-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; text-align: center; align-items: start; }
+  .mp-stats h3 { margin: 0 0 12px; font: 500 21px var(--text); color: var(--mp-blue); }
+  .mp-val { font: 500 26px var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .mp-val small { font-size: 16px; color: var(--mp-ink); margin-left: 3px; }
+  .mp-mem { position: relative; height: 26px; border-radius: 4px; background: #2d3352; overflow: hidden; margin-top: 4px; }
+  .mp-mem span { position: absolute; inset: 0 auto 0 0; background: #b8900f; transition: width .6s ease; }
+  .mp-mem b { position: relative; display: block; line-height: 26px; font: 500 15px var(--text); color: #fff; font-variant-numeric: tabular-nums; }
+  .mp-chart-t { margin: 22px 0 6px; text-align: center; font: 500 21px var(--text); color: var(--mp-blue); }
+  .mp-card:last-child { display: flex; flex-direction: column; }
+  .mp-chart { position: relative; height: 330px; flex: 1 1 auto; min-height: 300px; }
+  .mp-chart svg { display: block; width: 100%; height: 100%; font-family: var(--text); overflow: visible; }
+  .mp-chart .ax { fill: var(--mp-muted); font-size: 12px; }
+  .mp-chart .ax.hr { fill: #c9cde0; font-weight: 600; }
+  .mp-note { margin-top: 8px; font-size: 12px; color: var(--mp-muted); text-align: center; }
+  @media (max-width: 900px) { .mp { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 560px) {
+    .mp-stats { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .mp-stats > div:nth-child(2) { grid-column: 1 / -1; order: 3; }
+    .mp-stats h3, .mp-title, .mp-chart-t { font-size: 17px; }
+    .mp-val { font-size: 21px; }
+    .mp-chart { height: 260px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .neo *, .neo *::before, .neo *::after { animation: none !important; }
+  }
 
   /* ---------------- histórico de alertas */
   .alerts-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
@@ -362,6 +464,32 @@
     <div class="bsearch-msg" id="bq-msg" role="status"></div>
     <div class="card-sub blocks-desc" id="bdesc"></div>
     <div id="blocks-body" aria-live="polite"><div class="muted" style="margin-top:10px">Carregando…</div></div>
+  </section>
+
+  <h2>Mempool</h2>
+  <section class="mp" aria-label="Mempool ao vivo">
+    <div class="mp-card">
+      <a class="mp-title" id="mp-link" href="https://mempool.space/mempool-block/0" target="_blank" rel="noopener">Mempool Goggles : <span id="mp-fname">Todos</span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 3h6v6M17 3l-8 8M15 12v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h4"/></svg></a>
+      <div class="mp-seg"><div role="group" aria-label="Destacar transações" id="mp-filters">
+        <button data-f="todos" aria-pressed="true">Todos</button><button data-f="consolidacao" aria-pressed="false">Consolidação</button><button data-f="coinjoin" aria-pressed="false">Coinjoin</button><button data-f="dados" aria-pressed="false">Dados</button>
+      </div></div>
+      <div class="mp-box" id="mp-box">
+        <canvas id="mp-canvas" role="img" aria-label="Transações do próximo bloco projetado; tamanho = vbytes, cor = taxa"></canvas>
+        <div class="mp-wait" id="mp-wait">Conectando ao mempool…</div>
+        <div class="mp-tip" id="mp-tip"></div>
+      </div>
+      <div class="mp-note" id="mp-gnote">Próximo bloco projetado · tamanho = vbytes · cor = taxa (sat/vB)</div>
+    </div>
+    <div class="mp-card">
+      <div class="mp-stats">
+        <div><h3>Taxa mínima</h3><div class="mp-val" id="mp-min">— <small>sat/vB</small></div></div>
+        <div><h3>Uso de memória</h3><div class="mp-mem" role="meter" aria-label="Uso de memória do mempool" aria-valuemin="0" aria-valuemax="100" id="mp-mem"><span style="width:0"></span><b>—</b></div></div>
+        <div><h3>Não confirmado</h3><div class="mp-val" id="mp-count">— <small>Transações</small></div></div>
+      </div>
+      <h3 class="mp-chart-t">Transações Recebidas</h3>
+      <div class="mp-chart" id="mp-chart" role="img" aria-label="Transações recebidas pelo mempool nas últimas 2 horas, em vB/s"></div>
+      <div class="mp-note">vB/s nas últimas 2 h · tracejado = capacidade da rede (~1.667 vB/s, um bloco a cada 10 min)</div>
+    </div>
   </section>
 
   <h2>Alertas</h2>
@@ -951,66 +1079,91 @@ function blocksDesc(d) {
   if (d.view === "solo") return "Pools solo e pequenas, onde uma máquina pequena (Bitaxe, NerdMiner) pode achar um bloco sozinha.";
   return `Blocos mais recentes de ${nameOf(d.view.slice(5))}.`;
 }
-// cor do cubo pela taxa mediana (sat/vB): roxo = barato … vermelho = caro
-const FEE_SCALE = [[0, "#6a4fc0"], [1, "#4f5fc8"], [2, "#3473c4"], [4, "#1f8aa6"], [8, "#1d917a"], [15, "#3b9a45"],
-                   [30, "#869a1f"], [60, "#b98712"], [120, "#c8621f"], [250, "#c03a3a"]];
-const feeColor = f => f == null ? "#5d6b65" : FEE_SCALE.reduce((c, [t, col]) => f >= t ? col : c, FEE_SCALE[0][1]);
+// cadeia de cubos neon: blocos na fila (projeção do mempool) à esquerda, minerados à direita, com a pool de cada um
+const NEO_MAX_MINED = 24;                        // a lista completa fica em "Ver como lista"
+const H = n => n.toLocaleString("pt-BR");
 const feeFmt = f => f == null ? "—" : nf(f, f < 10 ? 1 : 0);
-function blockCube(b, d) {
+let neoTop = null;
+function neoMined(b, d, i, arrived) {
   const url = b.explorer_url || (b.hash ? `${d.mempool_url}/block/${b.hash}` : null);
   const tag = url ? "a" : "div";
   const attrs = url ? ` href="${esc(url)}" target="_blank" rel="noopener"` : "";
-  const fill = b.weight ? Math.max(6, Math.min(100, b.weight / 4e6 * 100)) : 100;
-  const color = b.coin !== "BTC" ? "#2f8466" : feeColor(b.median_fee);
   const pool = esc(POOL_NAMES[b.pool_slug] || b.pool_name);
-  const fees = b.coin !== "BTC" ? `<div class="fee">${esc(b.coin)}</div><div class="rng">sem dados de taxa</div>`
-    : `<div class="fee">~${feeFmt(b.median_fee)} sat/vB</div>`
-      + (b.fee_min != null ? `<div class="rng">${feeFmt(b.fee_min)} – ${feeFmt(b.fee_max)} sat/vB</div>` : "");
-  const tags = (b.coin !== "BTC" ? `<span class="tag coin">${esc(b.coin)}</span>` : "")
+  const coin = esc(b.coin || "BTC");
+  const tags = (b.coin !== "BTC" ? `<span class="tag coin">${coin}</span>` : "")
     + (b.mine ? '<span class="tag mine">sua pool</span>' : "")
     + (b.paid_me || b.found_by_me ? '<span class="tag paid">pagou você</span>' : "");
-  const label = `Bloco ${b.height.toLocaleString("pt-BR")}, ${b.pool_name}, ${b.ts ? fmtTime(b.ts, "", true) : "data desconhecida"}`;
-  return `<${tag} class="blk${b.mine ? " mine" : ""}"${attrs} aria-label="${esc(label)}">
-    <span class="blk-h">${b.height.toLocaleString("pt-BR")}</span>
-    <div class="cube${fill >= 99 ? " full" : ""}" style="--c:${color};--f:${fill}%"><div class="cube-in">
-      ${fees}
-      <div class="rw">${btc(b.reward_sats)} <small>${esc(b.coin)}</small></div>
-      ${b.tx_count == null ? "" : `<div class="tx">${b.tx_count.toLocaleString("pt-BR")} transações</div>`}
-      <div class="when" title="${b.ts ? fmtTime(b.ts, "", true) : ""}">${blockWhen(b.ts)}</div>
-    </div></div>
-    <div class="blk-pool" title="${pool}">${pool}</div>
-    ${b.worker ? `<div class="blk-who">por ${esc(b.worker)}</div>` : ""}
+  const label = `Bloco ${H(b.height)}, minerado por ${b.pool_name}, ${b.ts ? fmtTime(b.ts, "", true) : "data desconhecida"}`;
+  return `<${tag} class="neo-item mined${b.mine ? " mine" : ""}${arrived ? " arrived" : ""}"${attrs} style="--o:${-(i * .37).toFixed(2)}s" aria-label="${esc(label)}">
+    <div class="neo-scene" aria-hidden="true">
+      <div class="neo-float"><div class="neo-cube">
+        <div class="f front"><div class="lbl">Altura do bloco</div><div class="big">${H(b.height)}</div>
+          <div class="soft" data-ago="${b.ts || ""}">${blockWhen(b.ts)}</div>${b.tx_count == null ? "" : `<div class="txs"><b>${H(b.tx_count)}</b> TX</div>`}
+          <div class="badge">${pool}</div></div>
+        <div class="f right"><div class="lbl">Recompensa</div><div class="mid">${btc(b.reward_sats)}</div><div class="soft">${coin}</div>
+          ${b.fees_sats != null ? `<div class="soft" style="margin-top:5px">taxas ${btc(b.fees_sats)}</div>` : ""}
+          ${b.median_fee != null ? `<div class="soft">mediana ${feeFmt(b.median_fee)} sat/vB</div>` : ""}</div>
+        <div class="f top"><div class="lbl">Achado em</div><div class="soft">${b.ts ? esc(fmtTime(b.ts, "", true)) : "—"}</div></div>
+      </div></div>
+      <div class="neo-ring"><i></i></div>
+    </div>
+    <div class="neo-h">#${H(b.height)}</div>
+    <div class="neo-cap" title="${pool}">${pool}</div>
+    ${b.worker ? `<div class="neo-who">por ${esc(b.worker)}</div>` : ""}
     ${tags ? `<div class="tags">${tags}</div>` : ""}
   </${tag}>`;
 }
-function pendingCube(p, d, nextHeight) {
-  const fill = p.blocks > 1 ? 100 : Math.max(6, Math.min(100, p.vsize / 1e6 * 100));
-  const h = nextHeight ? (nextHeight + p.index).toLocaleString("pt-BR") + (p.blocks > 1 ? "+" : "") : (p.index ? `+${p.index + 1}` : "Próximo");
-  const when = p.blocks > 1 ? `mais ${p.blocks} blocos na fila` : p.index === 0 ? "próximo bloco" : `em ~${p.eta_min} min`;
-  const label = `${p.index === 0 ? "Próximo bloco" : `Bloco na fila, em cerca de ${p.eta_min} minutos`}: taxa mediana ${feeFmt(p.median_fee)} sat/vB, ${p.tx_count ?? "?"} transações. Ainda não minerado.`;
-  return `<a class="blk pending" href="${esc(`${d.mempool_url}/mempool-block/${p.index}`)}" target="_blank" rel="noopener" aria-label="${esc(label)}">
-    <span class="blk-h">${h}</span>
-    <div class="cube${fill >= 99 ? " full" : ""}" style="--c:var(--gold-block);--f:${fill}%"><div class="cube-in">
-      <div class="fee">~${feeFmt(p.median_fee)} sat/vB</div>
-      ${p.fee_min != null ? `<div class="rng">${feeFmt(p.fee_min)} – ${feeFmt(p.fee_max)} sat/vB</div>` : ""}
-      <div class="rw">${btc(p.fees_sats)} <small>BTC taxas</small></div>
-      ${p.tx_count == null ? "" : `<div class="tx">${p.tx_count.toLocaleString("pt-BR")} transações</div>`}
-      <div class="when">${p.blocks > 1 ? "depois" : `em ~${p.eta_min} min`}</div>
-    </div></div>
-    <div class="blk-pool">${esc(when)}</div>
+function neoPending(p, d, nextHeight, subsidy) {
+  const h = nextHeight ? H(nextHeight + p.index) + (p.blocks > 1 ? "+" : "") : (p.index ? `+${p.index + 1}` : "Próximo");
+  const cap = p.index === 0 ? `${nf(subsidy, 3)} BTC subsídio + taxas` : p.blocks > 1 ? `mais ${p.blocks} blocos na fila` : `em ~${p.eta_min} min`;
+  const label = `${p.index === 0 ? "Próximo bloco" : `Bloco na fila, em cerca de ${p.eta_min} minutos`}: ${p.tx_count ?? "?"} transações esperando, taxa mediana ${feeFmt(p.median_fee)} sat/vB. Ainda não minerado.`;
+  return `<a class="neo-item next${p.index === 0 ? " first" : " later"}" href="${esc(`${d.mempool_url}/mempool-block/${p.index}`)}" target="_blank" rel="noopener"
+      style="--o:${(p.index * .41).toFixed(2)}s" aria-label="${esc(label)}">
+    <div class="neo-scene" aria-hidden="true">
+      <div class="neo-float"><div class="neo-cube">
+        <div class="f front"><div class="lbl">${p.index === 0 ? "Próxima altura" : "Na fila"}</div><div class="big">${h}</div>
+          ${p.tx_count != null ? `<div class="txs"><b>${H(p.tx_count)}</b> TX esperando</div>` : ""}
+          <div class="soft">~${feeFmt(p.median_fee)} sat/vB</div></div>
+        <div class="f right"><div class="lbl">${p.index === 0 ? "Subsídio" : "Taxas"}</div>
+          ${p.index === 0 ? `<div class="mid">${nf(subsidy, 3)}</div><div class="soft">BTC + taxas</div><div class="soft" style="margin-top:5px">Cada hash conta</div>`
+            : `<div class="mid">${btc(p.fees_sats)}</div><div class="soft">BTC</div>`}
+          ${p.fee_min != null ? `<div class="soft">${feeFmt(p.fee_min)} – ${feeFmt(p.fee_max)} sat/vB</div>` : ""}</div>
+        <div class="f top"><div class="lbl">${p.index === 0 ? "Ao vivo" : "Projeção"}</div><div class="soft">${p.blocks > 1 ? "depois" : `em ~${p.eta_min} min`}</div></div>
+      </div></div>
+      <div class="neo-ring"><i></i></div>
+    </div>
+    <div class="neo-h">#${h}</div>
+    <div class="neo-cap">${esc(cap)}</div>
   </a>`;
+}
+const neoLink = i => `<div class="neo-link" aria-hidden="true" style="--o:${(i * .3).toFixed(2)}s"><i></i></div>`;
+function neoChain(d, pending, nextHeight) {
+  const top = d.blocks.reduce((a, b) => (!a || b.height > a.height ? b : a), null);
+  // subsídio = recompensa − taxas do último bloco (3,125 BTC desde 2024)
+  const subsidy = top && top.coin === "BTC" && top.reward_sats != null && top.fees_sats != null ? (top.reward_sats - top.fees_sats) / 1e8 : 3.125;
+  const arrived = d.view === "rede" && neoTop != null && top && top.height > neoTop;
+  if (d.view === "rede" && top) neoTop = top.height;
+  const items = [];
+  pending.slice().reverse().forEach(p => items.push(neoPending(p, d, nextHeight, subsidy)));
+  const queue = items.map((h, i) => h + neoLink(i)).join("").replace(/<div class="neo-link"[^>]*><i><\/i><\/div>$/, "");
+  const sep = pending.length ? '<div class="neo-sep" aria-hidden="true"><span class="l">Na fila</span><span class="r">Minerados</span></div>' : "";
+  const mined = d.blocks.slice(0, NEO_MAX_MINED).map((b, i) => (i ? neoLink(i + 7) : "") + neoMined(b, d, i, arrived && i === 0)).join("");
+  const more = d.blocks.length > NEO_MAX_MINED ? ` · mostrando ${NEO_MAX_MINED} de ${d.blocks.length} (todos em "Ver como lista")` : "";
+  return `<div class="neo" style="--t:${(performance.now() / 1000).toFixed(2)}">
+    <div class="neo-row" tabindex="0" aria-label="${pending.length ? "Próximos blocos na fila e blocos minerados" : "Blocos, do mais novo para o mais velho"}">${queue}${sep}${mined}</div>
+    <div class="neo-key">${pending.length ? '<span><i style="background:#4ade80"></i>na fila, ainda não minerado (projeção do mempool)</span>' : ""}
+      <span><i style="background:#0f3a24;box-shadow:inset 0 0 0 1.5px #4ade80"></i>minerado</span>
+      <span><i style="background:rgba(227,179,65,.3);box-shadow:inset 0 0 0 1.5px #e3b341"></i>pool que achou o bloco${esc(more)}</span></div>
+  </div>`;
 }
 function renderBlocks(d) {
   mempoolBase = d.mempool_url || mempoolBase;
+  mpStart();
   const bch = d.my_pools.includes("hashcommander") && (d.view === "minhas" || d.view === "pool:hashcommander");
   document.getElementById("bdesc").textContent = blocksDesc(d) + (bch ? " Fontes: mempool.space (BTC) e a própria pool (BCH)." : " Fonte: mempool.space.");
   const pending = d.pending || [];
   const nextHeight = d.blocks.length && d.blocks[0].coin === "BTC" ? Math.max(...d.blocks.map(b => b.height)) + 1 : null;
-  const queue = pending.length ? pending.slice().reverse().map(p => pendingCube(p, d, nextHeight)).join("")
-    + '<div class="chain-sep" aria-hidden="true"><span class="l">Na fila</span><span class="r">Minerados</span></div>' : "";
-  const chain = d.blocks.length ? `<div class="chain" tabindex="0" aria-label="${pending.length ? "Próximos blocos na fila e blocos minerados" : "Blocos, do mais novo para o mais velho"}">${queue}${d.blocks.map(b => blockCube(b, d)).join("")}</div>
-    <div class="fee-key">${pending.length ? `<i class="gold"></i> na fila, ainda não minerado (projeção do mempool) ·` : ""} Minerados: cor = taxa mediana <i style="background:linear-gradient(to right, ${FEE_SCALE.map(c => c[1]).join(",")})"></i>
-      1 → 250+ sat/vB · a parte preenchida mostra quão cheio o bloco está</div>` : "";
+  const chain = d.blocks.length || pending.length ? neoChain(d, pending, nextHeight) : "";
   const rows = d.blocks.map(b => {
     const url = b.explorer_url || (b.hash ? `${d.mempool_url}/block/${b.hash}` : null);
     const link = url ? `<a href="${esc(url)}" target="_blank" rel="noopener">${b.height.toLocaleString("pt-BR")}</a>` : b.height.toLocaleString("pt-BR");
@@ -1030,14 +1183,266 @@ function renderBlocks(d) {
   const notes = d.notes.map(n => `<div>${esc(n)}</div>`).join("");
   const body = document.getElementById("blocks-body");
   const open = body.querySelector("details.tbl")?.open;                   // mantém a lista aberta na atualização
-  const scroll = body.dataset.view === d.view ? body.querySelector(".chain")?.scrollLeft ?? null : null;   // e a rolagem dos cubos
+  const scroll = body.dataset.view === d.view ? body.querySelector(".neo-row")?.scrollLeft ?? null : null;   // e a rolagem dos cubos
   body.dataset.view = d.view;
   body.innerHTML = (d.error ? `<div class="err">${esc(d.error)}</div>` : "")
     + chain + table + (notes ? `<div class="blocks-notes">${notes}</div>` : "");
   if (open) body.querySelector("details.tbl").open = true;
-  const ch = body.querySelector(".chain"), sep = ch?.querySelector(".chain-sep");
+  const ch = body.querySelector(".neo-row"), sep = ch?.querySelector(".neo-sep");
   // primeira vez: tracejado no meio da tela, com os próximos blocos à esquerda e os minerados à direita
   if (ch) ch.scrollLeft = scroll ?? (sep ? sep.getBoundingClientRect().left - ch.getBoundingClientRect().left - ch.clientWidth / 2 : 0);
+}
+// ------------------------------------------------------------------ mempool ao vivo (direto do mempool.space, como na página deles)
+// websocket: mempoolInfo (taxa mínima, memória, nº de transações) + transações do próximo bloco projetado (Goggles).
+// REST: /api/v1/statistics/2h para o gráfico de transações recebidas (vB/s).
+const MP_COLORS = ["557d00", "5d7d01", "637d02", "6d7d04", "757d05", "7d7d06", "867d08", "8c7d09", "957d0b", "9b7d0c", "a67d0e", "aa7d0f",
+  "b27d10", "bb7d11", "bf7d12", "bf7815", "bf7319", "be6c1e", "be6820", "bd6125", "bd5c28", "bc552d", "bc4f30", "bc4a34", "bb4339", "bb3d3c",
+  "bb373f", "ba3243", "b92b48", "b9254b", "b8214d", "b71d4f", "b61951", "b41453", "b30e55", "b10857", "b00259", "ae005b"].map(h => "#" + h);
+const MP_LEVELS = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 175, 200, 250, 300, 350, 400, 500, 600, 700,
+  800, 900, 1000, 1200, 1400, 1600, 1800, 2000];
+const MP_RGB = MP_COLORS.map(c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)));
+function mpColor(rate) {                       // escala do mempool.space, interpolada entre os degraus
+  const r = Math.max(1, rate), i = MP_LEVELS.findIndex(l => r < l) - 1;
+  if (i < 0) return MP_COLORS[MP_COLORS.length - 1];
+  const f = (r - MP_LEVELS[i]) / (MP_LEVELS[i + 1] - MP_LEVELS[i]), a = MP_RGB[i], b = MP_RGB[i + 1] || a;
+  return `rgb(${a.map((v, k) => Math.round(v + (b[k] - v) * f)).join(",")})`;
+}
+// bits de flags do mempool.space (TransactionFlags): dados = op_return/fake_pubkey/inscription/fake_scripthash/annex
+const MP_FILTERS = {
+  todos: { name: "Todos", test: () => true },
+  consolidacao: { name: "Consolidação", test: f => Math.floor(f / 2 ** 33) % 2 === 1 },
+  coinjoin: { name: "Coinjoin", test: f => Math.floor(f / 2 ** 32) % 2 === 1 },
+  dados: { name: "Dados", test: f => Math.floor(f / 2 ** 24) % 32 !== 0 },
+};
+const MP_FLAG_NAMES = [[24, "OP_RETURN"], [25, "pubkey falsa"], [26, "inscrição"], [27, "scripthash falso"], [28, "annex"], [32, "coinjoin"],
+  [33, "consolidação"], [34, "pagamento em lote"], [16, "CPFP"], [18, "substituição (RBF)"]];
+const MP_GRID = 75;                                   // 75 × 75 quadradinhos ≈ 1 MvB (um bloco)
+let mpWs = null, mpRetry = 0, mpRetryTimer = null, mpStarted = false, mpInfo = null, mpFilter = "todos";
+let mpTxs = new Map(), mpCells = null, mpPlaced = [], mpDrawTimer = null, mpFading = false, mpStats = null;
+
+function mpWsUrl() { return mempoolBase.replace(/^http/, "ws").replace(/\/+$/, "") + "/api/v1/ws"; }
+function mpConnect() {
+  if (mpWs || document.hidden) return;
+  clearTimeout(mpRetryTimer);
+  let ws;
+  try { ws = mpWs = new WebSocket(mpWsUrl()); } catch (e) { mpWs = null; return; }
+  ws.onopen = () => {
+    mpRetry = 0;
+    ws.send(JSON.stringify({ action: "want", data: ["stats", "mempool-blocks"] }));
+    ws.send(JSON.stringify({ "track-mempool-block": 0 }));
+  };
+  ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (err) { return; } mpMessage(m); };
+  ws.onclose = () => {
+    if (mpWs !== ws) return;
+    mpWs = null;
+    if (!document.hidden) mpRetryTimer = setTimeout(mpConnect, Math.min(30000, 2000 * 2 ** mpRetry++));
+    if (!mpTxs.size) document.getElementById("mp-wait").textContent = "Sem conexão com o mempool. Tentando de novo…";
+  };
+}
+function mpMessage(m) {
+  if (m.mempoolInfo) { mpInfo = m.mempoolInfo; mpRenderInfo(); }
+  const pb = m["projected-block-transactions"];
+  if (pb && pb.index === 0) {
+    const now = performance.now();
+    if (pb.blockTransactions) {
+      mpTxs = new Map(pb.blockTransactions.map(t => [t[0], { id: t[0], fee: t[1], vsize: t[2], rate: t[4], flags: t[5] || 0, born: 0 }]));
+    } else if (pb.delta) {
+      for (const id of pb.delta.removed || []) mpTxs.delete(id);
+      for (const t of pb.delta.added || []) mpTxs.set(t[0], { id: t[0], fee: t[1], vsize: t[2], rate: t[4], flags: t[5] || 0, born: now });
+      for (const c of pb.delta.changed || []) { const t = mpTxs.get(c[0]); if (t) { t.rate = c[1]; t.flags = c[2] ?? t.flags; } }
+    }
+    if (pb.blockTransactions) { clearTimeout(mpDrawTimer); mpDrawTimer = null; mpLayout(); mpDraw(); }
+    else if (!mpDrawTimer) mpDrawTimer = setTimeout(() => { mpDrawTimer = null; mpLayout(); mpDraw(); }, 500);   // no máx. 2×/s
+  }
+}
+function mpRenderInfo() {
+  const i = mpInfo;
+  if (!i) return;
+  const min = i.mempoolminfee != null ? i.mempoolminfee * 1e5 : null;         // BTC/kvB → sat/vB
+  document.getElementById("mp-min").innerHTML = `${min == null ? "—" : nf(min, 2)} <small>sat/vB</small>`;
+  document.getElementById("mp-count").innerHTML = `${i.size == null ? "—" : H(i.size)} <small>Transações</small>`;
+  const mem = document.getElementById("mp-mem");
+  if (i.usage != null && i.maxmempool) {
+    const pct = Math.min(100, i.usage / i.maxmempool * 100);
+    mem.querySelector("span").style.width = pct + "%";
+    mem.querySelector("b").textContent = `${Math.round(i.usage / 1e6)} MB / ${Math.round(i.maxmempool / 1e6)} MB`;
+    mem.setAttribute("aria-valuenow", Math.round(pct));
+  }
+}
+// quadrados com lado ∝ √vbytes, empilhados de baixo para cima por taxa (maior taxa embaixo), como no mempool.space
+function mpLayout() {
+  const G = MP_GRID, unit = 1e6 / (G * G);
+  const occ = new Uint8Array(G * G), cells = new Int32Array(G * G).fill(-1);
+  const txs = [...mpTxs.values()].sort((a, b) => b.rate - a.rate);
+  const placed = [];
+  let first = 0;
+  const fits = (x, y, s) => {
+    if (x + s > G || y + s > G) return false;
+    for (let dy = 0; dy < s; dy++) for (let dx = 0; dx < s; dx++) if (occ[(y + dy) * G + x + dx]) return false;
+    return true;
+  };
+  for (const t of txs) {
+    if (first >= G * G) break;
+    let s = Math.max(1, Math.min(G, Math.round(Math.sqrt(t.vsize / unit))));
+    let pos = -1;
+    for (; s >= 1 && pos < 0; s--) {
+      for (let idx = first; idx < G * G; idx++) {
+        if (!occ[idx] && fits(idx % G, Math.floor(idx / G), s)) { pos = idx; break; }
+      }
+      if (pos >= 0) break;
+    }
+    if (pos < 0) continue;
+    const x = pos % G, y = Math.floor(pos / G), k = placed.length;
+    for (let dy = 0; dy < s; dy++) for (let dx = 0; dx < s; dx++) { occ[(y + dy) * G + x + dx] = 1; cells[(y + dy) * G + x + dx] = k; }
+    placed.push({ t, x, y, s });
+    while (first < G * G && occ[first]) first++;
+  }
+  mpPlaced = placed; mpCells = cells;
+}
+function mpDraw() {
+  const cv = document.getElementById("mp-canvas"), box = document.getElementById("mp-box");
+  const W = box.clientWidth;
+  if (!W) return;
+  const dpr = window.devicePixelRatio || 1;
+  if (cv.width !== Math.round(W * dpr)) { cv.width = cv.height = Math.round(W * dpr); }
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, W);
+  const cell = W / MP_GRID, gap = Math.max(.6, cell * .14);
+  const test = MP_FILTERS[mpFilter].test, now = performance.now();
+  let fading = false;
+  for (const p of mpPlaced) {
+    const hit = test(p.t.flags);
+    let col = mpColor(p.t.rate);
+    if (!hit) col = "#2a2d3e";
+    const age = p.t.born ? now - p.t.born : 1e9;
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = col;
+    const px = p.x * cell + gap / 2, py = (MP_GRID - p.y - p.s) * cell + gap / 2, sz = p.s * cell - gap;
+    ctx.fillRect(px, py, sz, sz);
+    if (age < 1600) {                                  // transação nova: acende e apaga
+      fading = true;
+      ctx.globalAlpha = .75 * (1 - age / 1600);
+      ctx.fillStyle = "#eaffc8";
+      ctx.fillRect(px, py, sz, sz);
+    }
+    if (hit && mpFilter !== "todos") {                 // destaque do filtro, como nos "óculos" do mempool
+      ctx.globalAlpha = .35; ctx.fillStyle = "#ffffff"; ctx.fillRect(px, py, sz, sz);
+    }
+  }
+  ctx.globalAlpha = 1;
+  document.getElementById("mp-wait").textContent = mpPlaced.length ? "" : "Conectando ao mempool…";
+  const n = mpFilter === "todos" ? null : mpPlaced.filter(p => test(p.t.flags)).length;
+  document.getElementById("mp-gnote").textContent = `Próximo bloco projetado · ${H(mpTxs.size)} transações`
+    + (n != null ? ` · ${H(n)} de ${MP_FILTERS[mpFilter].name.toLowerCase()}` : "") + " · tamanho = vbytes · cor = taxa";
+  if (fading && !mpFading && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    mpFading = true;
+    requestAnimationFrame(() => { mpFading = false; mpDraw(); });
+  }
+}
+function mpTipAt(ev) {
+  const cv = document.getElementById("mp-canvas"), tip = document.getElementById("mp-tip");
+  const r = cv.getBoundingClientRect();
+  if (!mpCells || !r.width) return null;
+  const gx = Math.floor((ev.clientX - r.left) / r.width * MP_GRID), gyTop = Math.floor((ev.clientY - r.top) / r.height * MP_GRID);
+  const gy = MP_GRID - 1 - gyTop;
+  if (gx < 0 || gy < 0 || gx >= MP_GRID || gy >= MP_GRID) return null;
+  const k = mpCells[gy * MP_GRID + gx];
+  return k >= 0 ? mpPlaced[k].t : null;
+}
+function mpInitCanvas() {
+  const cv = document.getElementById("mp-canvas"), tip = document.getElementById("mp-tip"), box = document.getElementById("mp-box");
+  cv.addEventListener("mousemove", ev => {
+    const t = mpTipAt(ev);
+    if (!t) { tip.style.display = "none"; cv.style.cursor = "crosshair"; return; }
+    const flags = MP_FLAG_NAMES.filter(([b]) => Math.floor(t.flags / 2 ** b) % 2 === 1).map(([, n]) => n);
+    tip.innerHTML = `<b>${nf(t.rate, t.rate < 10 ? 2 : 1)} sat/vB</b><br>${H(Math.round(t.vsize))} vB · taxa ${H(t.fee)} sats`
+      + (flags.length ? `<br>${esc(flags.join(" · "))}` : "") + `<br><span style="opacity:.6">${esc(t.id.slice(0, 10))}… (clique para abrir)</span>`;
+    tip.style.display = "block";
+    const br = box.getBoundingClientRect();
+    let x = ev.clientX - br.left + 14, y = ev.clientY - br.top + 14;
+    if (x + tip.offsetWidth > br.width) x = ev.clientX - br.left - tip.offsetWidth - 10;
+    if (y + tip.offsetHeight > br.height) y = ev.clientY - br.top - tip.offsetHeight - 10;
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+    cv.style.cursor = "pointer";
+  });
+  cv.addEventListener("mouseleave", () => { tip.style.display = "none"; });
+  cv.addEventListener("click", ev => { const t = mpTipAt(ev); if (t) window.open(`${mempoolBase}/tx/${t.id}`, "_blank", "noopener"); });
+  document.querySelectorAll("#mp-filters button").forEach(b => b.addEventListener("click", () => {
+    mpFilter = b.dataset.f;
+    document.querySelectorAll("#mp-filters button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    document.getElementById("mp-fname").textContent = MP_FILTERS[mpFilter].name;
+    mpDraw();
+  }));
+  new ResizeObserver(() => { mpDraw(); mpChart(); }).observe(box.parentElement.parentElement);
+}
+// gráfico "Transações Recebidas": vB/s; verde abaixo da capacidade da rede, amarelo → vermelho acima
+const MP_LIMIT = 1667;
+const MP_BANDS = [[MP_LIMIT, "#7cb342"], [2000, "#fdd835"], [2500, "#ffb300"], [3000, "#fb8c00"], [3500, "#f4511e"], [Infinity, "#d81b60"]];
+async function mpLoadStats() {
+  if (document.hidden) return;
+  try {
+    const r = await fetch(`${mempoolBase.replace(/\/+$/, "")}/api/v1/statistics/2h`, { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    mpStats = (await r.json()).filter(p => p.added && p.vbytes_per_second != null).sort((a, b) => a.added - b.added);
+  } catch (e) { if (!mpStats) mpStats = []; }
+  mpChart();
+}
+function mpChart() {
+  const el = document.getElementById("mp-chart");
+  const W = el.clientWidth, Ht = el.clientHeight;
+  if (!W || !mpStats) return;
+  if (!mpStats.length) { el.innerHTML = '<div class="mp-wait">Sem dados do mempool agora.</div>'; return; }
+  const m = { l: 46, r: 8, t: 10, b: 30 };
+  const iw = W - m.l - m.r, ih = Ht - m.t - m.b;
+  const vmax = Math.max(MP_LIMIT * 1.3, ...mpStats.map(p => p.vbytes_per_second));
+  const step = vmax > 14000 ? 5000 : vmax > 7000 ? 2000 : 1000;
+  const ymax = Math.ceil(vmax / step) * step;
+  const t0 = mpStats[0].added, t1 = mpStats[mpStats.length - 1].added;
+  const X = t => m.l + (t1 > t0 ? (t - t0) / (t1 - t0) : 1) * iw, Y = v => m.t + ih - v / ymax * ih;
+  let g = "";
+  for (let v = 0; v <= ymax; v += step) {
+    g += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="${v ? "#3a3f5c" : "#5a6080"}" stroke-dasharray="${v ? "1 3" : ""}"/>`
+      + `<text class="ax" x="${m.l - 8}" y="${Y(v) + 4}" text-anchor="end">${v}</text>`;
+  }
+  const q = 15 * 60;
+  for (let t = Math.ceil(t0 / q) * q; t <= t1; t += q) {
+    const d = new Date(t * 1000), hr = d.getMinutes() === 0;
+    if (X(t) < m.l + 20 || X(t) > W - m.r - 16) continue;
+    g += `<line x1="${X(t)}" x2="${X(t)}" y1="${m.t + ih}" y2="${m.t + ih + 5}" stroke="#5a6080"/>`
+      + `<text class="ax${hr ? " hr" : ""}" x="${X(t)}" y="${Ht - 6}" text-anchor="middle">${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</text>`;
+  }
+  // gradiente em degraus pelo valor (eixo y), como no mempool.space
+  let stops = "", prev = 0;
+  for (const [lim, col] of MP_BANDS) {
+    const a = Math.min(1, prev / ymax), b = Math.min(1, lim / ymax);
+    stops += `<stop offset="${a}" stop-color="${col}"/><stop offset="${b}" stop-color="${col}"/>`;
+    prev = lim;
+    if (lim >= ymax) break;
+  }
+  const pts = mpStats.map(p => `${X(p.added).toFixed(1)},${Y(p.vbytes_per_second).toFixed(1)}`).join(" ");
+  const last = mpStats[mpStats.length - 1];
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${Ht}" aria-hidden="true">
+    <defs><linearGradient id="mp-grad" gradientUnits="userSpaceOnUse" x1="0" y1="${Y(0)}" x2="0" y2="${Y(ymax)}">${stops}</linearGradient></defs>
+    ${g}
+    <polyline points="${pts}" fill="none" stroke="url(#mp-grad)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+    <line x1="${m.l}" x2="${W - m.r}" y1="${Y(MP_LIMIT)}" y2="${Y(MP_LIMIT)}" stroke="#fff" stroke-width="2" stroke-dasharray="9 6"/>
+    <circle cx="${X(last.added)}" cy="${Y(last.vbytes_per_second)}" r="4" fill="${MP_BANDS.find(([l]) => last.vbytes_per_second < l)[1]}"/>
+  </svg>`;
+  el.setAttribute("aria-label", `Transações recebidas nas últimas 2 horas; agora ${H(last.vbytes_per_second)} vB/s (capacidade da rede ≈ ${H(MP_LIMIT)} vB/s)`);
+}
+function mpStart() {
+  if (mpStarted) return;
+  mpStarted = true;
+  document.getElementById("mp-link").href = `${mempoolBase}/mempool-block/0`;
+  mpInitCanvas();
+  mpConnect();
+  mpLoadStats();
+  setInterval(mpLoadStats, 60000);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) { const ws = mpWs; mpWs = null; ws?.close(); clearTimeout(mpRetryTimer); }   // aba escondida: desliga o ao vivo
+    else { mpConnect(); mpLoadStats(); }
+  });
 }
 async function loadBlocks() {
   try {
@@ -1047,6 +1452,7 @@ async function loadBlocks() {
     if (d.view === bview) renderBlocks(d);       // ignora resposta atrasada de outro filtro
   } catch (e) {
     document.getElementById("blocks-body").innerHTML = '<div class="err">Não foi possível carregar os blocos.</div>';
+    mpStart();
   }
 }
 function setBlockView(v) {
