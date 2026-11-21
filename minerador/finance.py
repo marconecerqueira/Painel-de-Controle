@@ -116,7 +116,8 @@ def compute_own(*, avg_ths: float | None, avg_samples: int, current_ths: float |
         out["note"] = "informe energy_eur_kwh em [finance] no config.toml para calcular o custo de energia"
     else:
         out["kwh_day"] = power_w * 24 / 1000
-        out.update(energy_basis="tarifa", energy_eur_day=out["kwh_day"] * tariff_eur_kwh)
+        out.update(energy_basis="tarifa", energy_eur_day=out["kwh_day"] * tariff_eur_kwh,
+                   tariff_eur_kwh=tariff_eur_kwh)
 
     if not market:
         return out
@@ -185,4 +186,5 @@ def compute_rental(*, cost_btc: float, hours: float, start: float | None, start_
             out["chance_pct"] = v["chance_pct"]
         if out.get("cost_eur"):
             out["ev_pct_cost"] = out["ev_eur"] / out["cost_eur"] * 100
+            out["result_eur"] = out["ev_eur"] - out["cost_eur"]   # valor esperado − custo
     return out

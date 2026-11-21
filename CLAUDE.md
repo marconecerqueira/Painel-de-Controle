@@ -40,7 +40,9 @@ Fluxo de dados:
 - **`alerts.py`**: `conditions(snapshot)` → `AlertEngine`. O engine aplica tempos de espera (`[alerts]`), guarda o histórico no banco e envia pelo Telegram. No painel **não há lista/histórico de alertas** (removida a pedido do usuário): os ativos (`alert` 🔴 e `info` ℹ️) aparecem só no aviso do topo, cada um com × que chama `/api/alerts/ack`.
 - **`finance.py`**: hashprice, dificuldade e preço vêm de mempool.space (`Market`). Calcula:
   - `compute_own`: receita esperada × energia.
-  - `compute_rental`: custo do aluguel × valor esperado / chance de bloco solo.
+  - `compute_rental`: custo do aluguel × valor esperado / chance de bloco solo; `result_eur` = valor esperado − custo.
+  - Aluguel que termina vai para a tabela `rental_results` (gravado **uma vez só**, valores congelados no fim). Assim ele sobrevive ao × do cartão e à troca do config. O snapshot manda `rentals_done` (lista "Aluguéis terminados") e `totals.rentals` (terminados + ativos).
+  - Na tela, as finanças abrem com uma **frase de veredito** (`financeVerdict`, `rentalVerdict`): ganha/perde quanto e por quê (tarifa × ponto de empate). O topo separa "Máquinas próprias" (/dia) de "Aluguéis". Os detalhes do aluguel ficam num `<details data-keep>`, que continua aberto quando a lista é redesenhada.
 - **`control.py`** (Fase 4) envia comandos às máquinas. No LuxOS: `logon` → comando → `logoff`, com **uma sessão por vez**. No AxeOS: só valores seguros vindos de `/api/system/asic`. Há um lock por máquina no `Collector`. Nunca foi testado contra hardware real, só no simulador.
 - **`blocks.py`** (`BlockFeed`) alimenta a seção "Blocos encontrados" (filtros `rede`, `minhas`, `solo`, `pool:<slug>`). Ela junta mempool.space, os blocos da defisurfers e os da Hash Commander, com cache por TTL. Os blocos pendentes (fila do mempool) só vêm na visão `rede`.
 

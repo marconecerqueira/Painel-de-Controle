@@ -110,3 +110,39 @@ def test_collector_finance_against_simulator(tmp_path):
     assert abs(solo["start"] - now) < 60 and solo["mode"] == "solo" and solo["coin"] == "BCH"
     assert solo["chance_pct"] > 0 and round(solo["cost_eur"], 2) == 70.01
     assert pp["mode"] == "PPLNS" and "chance_pct" not in pp
+
+
+def test_rental_result_is_expected_value_minus_cost():
+    start = 1_000_000.0
+    r = compute_rental(cost_btc=0.00118, hours=19, start=start, start_source="config",
+                       newer_run_start=None, avg_ths=230, avg_samples=50, current_ths=200,
+                       mode="solo", coin_market=BCH, btc_market=BTC, now=start + 20 * 3600)
+    assert r["state"] == "terminado"
+    assert r["result_eur"] == pytest.approx(r["ev_eur"] - r["cost_eur"])
+    assert r["result_eur"] < 0                       # pagou ~70 € por ~4 € de valor esperado
+
+
+def test_finished_rental_result_is_frozen(tmp_path):
+    db = Database(str(tmp_path / "t.db"))
+    assert db.save_rental_result("hc-solo", 100.0, {"name": "Solo", "start": 100.0, "result_eur": -5.0})
+    # 2ª gravação do mesmo aluguel (mercado mudou) não altera o valor guardado
+    assert not db.save_rental_result("hc-solo", 100.0, {"name": "Solo", "start": 100.0, "result_eur": -9.0})
+    db.save_rental_result("hc-solo", 500.0, {"name": "Solo", "start": 500.0, "result_eur": 1.5})
+    rows = db.rental_results()
+    db.close()
+    assert [r["start"] for r in rows] == [500.0, 100.0]          # mais recente primeiro
+    assert rows[1]["result_eur"] == -5.0
+
+
+def test_rental_totals_sum_finished_and_active(tmp_path):
+    cfg = parse_config({"server": {"db_path": str(tmp_path / "t.db")}, "miners": [], "pools": {}})
+    db = Database(cfg.db_path)
+    col = Collector(cfg, db)
+    assert col._rental_totals() is None
+    col.rentals_done = [{"result_eur": -5.0}, {"result_eur": 1.5}]
+    col.rentals = {"a": {"state": "ativo", "result_eur": -2.0},
+                   "b": {"state": "terminado", "result_eur": -5.0},   # já está em rentals_done
+                   "c": {"state": "novo"}}
+    t = col._rental_totals()
+    db.close()
+    assert t == {"result_eur": pytest.approx(-5.5), "count": 3, "active": 1}

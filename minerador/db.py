@@ -61,6 +61,13 @@ CREATE TABLE IF NOT EXISTS hidden_miners (
     miner_id TEXT PRIMARY KEY,
     ts REAL NOT NULL
 );
+-- resultado de cada aluguel que terminou, congelado no fim (sobrevive ao × e ao config novo)
+CREATE TABLE IF NOT EXISTS rental_results (
+    miner_id TEXT NOT NULL,
+    start REAL NOT NULL,
+    data TEXT NOT NULL,
+    PRIMARY KEY (miner_id, start)
+);
 """
 
 
@@ -182,6 +189,21 @@ class Database:
             else:
                 self._conn.execute("DELETE FROM hidden_miners WHERE miner_id = ?", (miner_id,))
             self._conn.commit()
+
+    # ------------------------------------------------------------------ aluguéis terminados
+    def save_rental_result(self, miner_id: str, start: float, data: dict) -> bool:
+        """Grava o resultado de um aluguel terminado só na 1ª vez (fica congelado). True se gravou."""
+        with self._lock:
+            cur = self._conn.execute("INSERT OR IGNORE INTO rental_results VALUES (?, ?, ?)",
+                                     (miner_id, start, json.dumps(data)))
+            self._conn.commit()
+            return cur.rowcount > 0
+
+    def rental_results(self, limit: int = 20) -> list[dict]:
+        """Aluguéis terminados, do mais recente para o mais antigo."""
+        with self._lock:
+            rows = self._conn.execute("SELECT data FROM rental_results ORDER BY start DESC LIMIT ?", (limit,))
+            return [json.loads(r[0]) for r in rows]
 
     # ------------------------------------------------------------------ histórico
     def _bucketed(self, sql: str, args: tuple, bucket_s: int) -> list[list[float]]:

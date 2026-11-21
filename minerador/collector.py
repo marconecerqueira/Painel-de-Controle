@@ -60,6 +60,7 @@ class Collector:
         self.btc_market: dict | None = None
         self._worker_mode: dict[tuple[str, str], str] = {}  # (pool, worker) -> "solo" / "PPLNS"
         self.hidden: set[str] = db.hidden_miners() if db else set()   # cards fechados no painel
+        self.rentals_done: list[dict] = db.rental_results() if db else []  # aluguéis terminados
         self._control_locks: dict[str, asyncio.Lock] = {}   # um comando por máquina de cada vez
 
     @property
@@ -265,11 +266,21 @@ class Collector:
             cur = next((w for w in (good.workers if good else []) if w.name == m.worker and w.online), None)
             # modo desconhecido (ex.: painel reiniciado depois do fim do aluguel) fica None: sem chute
             mode = self._worker_mode.get((m.pool, m.worker)) or ("PPLNS" if pool.type == "defisurfers" else None)
-            self.rentals[m.id] = compute_rental(
+            r = self.rentals[m.id] = compute_rental(
                 cost_btc=m.cost_btc, hours=m.rental_hours, start=start, start_source=source,
                 newer_run_start=run[0] if run and m.rental_start is not None else None,
                 avg_ths=avg, avg_samples=n, current_ths=cur.hashrate_ths if cur else None,
                 mode=mode, coin_market=coin, btc_market=btc, now=now)
+            if r["state"] == "terminado" and r.get("result_eur") is not None:
+                await self._save_rental_result(m, r)
+
+    async def _save_rental_result(self, m, r: dict) -> None:
+        """Guarda o resultado do aluguel terminado (só a 1ª vez: os valores ficam congelados)."""
+        keep = ("start", "end", "hours", "mode", "coin", "cost_btc", "cost_eur", "ev_eur",
+                "result_eur", "ev_pct_cost", "price_ratio", "avg_ths")
+        data = {"miner_id": m.id, "name": m.name, **{k: r.get(k) for k in keep}}
+        if await asyncio.to_thread(self.db.save_rental_result, m.id, r["start"], data):
+            self.rentals_done = await asyncio.to_thread(self.db.rental_results)
 
     async def prune_once(self) -> None:
         if self.db and self.cfg.retention_days > 0:
@@ -409,7 +420,9 @@ class Collector:
             "pools": pools,
             "alerts": self.alerts.summary() if self.alerts else None,
             "totals": {"hashrate_ths": tot_hash, "power_w": tot_power,
-                       "online": online, "total": total, "finance": self._finance_totals()},
+                       "online": online, "total": total, "finance": self._finance_totals(),
+                       "rentals": self._rental_totals()},
+            "rentals_done": self.rentals_done,
             "market": {"btc_eur": self.btc_market["price_eur"]} if self.btc_market else None,
         }
 
@@ -427,6 +440,16 @@ class Collector:
         out["profit_eur_day"] = out["revenue_eur_day"] - out["energy_eur_day"] if complete else None
         out["profit_eur_month"] = out["profit_eur_day"] * 30 if complete else None
         return out
+
+    def _rental_totals(self) -> dict | None:
+        """Resultado esperado (valor esperado − custo) dos aluguéis terminados + os em andamento."""
+        done = [d["result_eur"] for d in self.rentals_done if d.get("result_eur") is not None]
+        active = [r["result_eur"] for r in self.rentals.values()
+                  if r.get("state") == "ativo" and r.get("result_eur") is not None]
+        if not done and not active:
+            return None
+        return {"result_eur": sum(done) + sum(active), "count": len(done) + len(active),
+                "active": len(active)}
 
     # ------------------------------------------------------------------ histórico
     async def _pool_total(self, pool_id: str, range_: str, since: float, bucket_s: int) -> list | None:

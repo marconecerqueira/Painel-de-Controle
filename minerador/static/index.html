@@ -93,6 +93,9 @@
   .totals .k { font-size: 12.5px; color: var(--silk-2); }
   .totals .v { font: 600 26px/1.05 var(--cond); }
   .totals .v small { font: 500 15px var(--cond); color: var(--silk-2); margin-left: 3px; }
+  .totals .v.gain { color: var(--led-good); }
+  .totals .v.loss { color: #ff8a80; }
+  .totals .sub { font-size: 12px; line-height: 1.35; color: var(--silk-2); margin-top: 3px; }
 
   .bays { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin-top: 12px; }
   .bay { display: block; color: inherit; background: var(--slot); border-radius: 10px; padding: 10px 12px 11px; box-shadow: inset 0 0 0 1px rgba(232,241,236,.12); min-width: 0; }
@@ -171,9 +174,20 @@
   .rent-head b { font: 600 16px var(--cond); }
   .rent-head span { font-size: 13px; color: var(--ink-2); }
   .rent .metrics { margin-top: 10px; }
-  .fin { background: color-mix(in srgb, var(--good) 4%, var(--surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--good) 16%, var(--hair)); }
-  .v.gain { color: var(--good-text); }
-  .v.loss { color: var(--loss-text); }
+  /* neutro: quem diz se é lucro ou prejuízo é o veredito, não a cor do quadro */
+  .fin { background: color-mix(in srgb, var(--ink) 3%, var(--surface)); box-shadow: inset 0 0 0 1px var(--hair); }
+  .v.gain, td.gain, .verdict b.gain { color: var(--good-text); }
+  .v.loss, td.loss, .verdict b.loss { color: var(--loss-text); }
+  .verdict { margin: 8px 0 0; max-width: 62ch; font-size: 14px; line-height: 1.45; color: var(--ink-2); }
+  .verdict b { font-weight: 600; color: var(--ink); }
+  .metric.lead .v { font-size: 22px; }
+  .rent-result { margin-top: 10px; }
+  .rent-result .k { color: var(--muted); font-size: 12.5px; }
+  .rent-result .v { font: 600 26px/1.1 var(--cond); }
+  .rent-more { margin-top: 10px; font-size: 13.5px; }
+  .rent-more summary { cursor: pointer; color: var(--accent); width: fit-content; }
+  .rent-more .metrics { margin-top: 8px; }
+  .ledger tfoot td { font-weight: 600; border-top: 1px solid var(--hair); border-bottom: 0; }
 
   table { width: 100%; border-collapse: collapse; margin-top: 12px; font-variant-numeric: tabular-nums; }
   th { text-align: left; color: var(--muted); font-weight: 500; font-size: 12.5px; padding: 4px 6px; border-bottom: 1px solid var(--hair); }
@@ -619,6 +633,7 @@
   <h2>Máquinas</h2>
   <section class="grid" id="miners"><div class="empty">Carregando…</div></section>
   <div class="hidden-note" id="miners-hidden"></div>
+  <div id="ledger"></div>
 
   <h2>Pools</h2>
   <section class="grid" id="pools"></section>
@@ -708,56 +723,103 @@ function tempMetric(label, t, limit) {
 }
 
 const eur = v => v == null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 });
-function rentalBlock(r) {
+const openDetails = new Set();       // "Detalhes" abertos continuam abertos quando a lista é redesenhada
+document.addEventListener("toggle", e => {
+  const k = e.target.dataset?.keep;
+  if (k) e.target.open ? openDetails.add(k) : openDetails.delete(k);
+}, true);
+
+function rentalVerdict(r) {           // a conta feita em palavras: pagou X, vale Y, por quê
+  if (r.result_eur == null) return "";
+  const pct = `${nf(r.ev_pct_cost, r.ev_pct_cost < 10 ? 1 : 0)}% do custo`;
+  let s = r.state === "ativo"
+    ? `Você pagou ${eur(r.cost_eur)}. No ritmo atual, o aluguel inteiro vale em média ${eur(r.ev_eur)} (${pct}).`
+    : `Você pagou ${eur(r.cost_eur)}. O hashrate entregue valeu em média ${eur(r.ev_eur)} (${pct}).`;
+  const x = r.price_ratio;
+  if (x != null) s += x >= 1.1 ? ` Pagou ${nf(x, x < 10 ? 1 : 0)}× o preço de mercado do hashrate.`
+    : x <= 0.9 ? ` Pagou menos que o preço de mercado do hashrate (${nf(x, 2)}×).`
+    : " Pagou o preço de mercado do hashrate.";
+  if (r.chance_pct != null)
+    s += ` No solo, ou acha um bloco (chance de ${nf(r.chance_pct, 2)}%, prêmio ≈ ${eur(r.block_value_eur)}) ou não recebe nada: o resultado é a média.`;
+  return s;
+}
+
+function rentalBlock(r, key) {
   const when = t => fmtTime(t, "", true);
   let head = "";
   if (r.state === "ativo") head = `Termina ${when(r.end)}, faltam ${duration(r.end - Date.now() / 1000)}`;
   else if (r.state === "terminado") head = `Terminou ${when(r.end)}`;
   else if (r.state === "novo") head = "novo aluguel";
   const period = r.start ? `De ${when(r.start)} a ${when(r.end)}, ${nf(r.hours, r.hours % 1 ? 1 : 0)} h${r.start_source === "detectado" ? " (início detectado pelo painel)" : ""}` : "";
-  const ev = r.ev_eur != null
-    ? `${eur(r.ev_eur)}${r.ev_pct_cost != null ? `<div class="sub">${nf(r.ev_pct_cost, r.ev_pct_cost < 10 ? 1 : 0)}% do custo</div>` : ""}` : "—";
+  const satsTxt = `${Math.round(r.cost_btc * 1e8).toLocaleString("pt-BR")} sats`;
+  const cost = r.cost_eur != null
+    ? `${eur(r.cost_eur)}<div class="sub">${satsTxt}, ${r.cost_btc.toLocaleString("pt-BR", { maximumFractionDigits: 8 })} BTC</div>`
+    : `${Math.round(r.cost_btc * 1e8).toLocaleString("pt-BR")} <small>sats</small>`;
   const price = r.price_sats_th_day != null
     ? `${nf(r.price_sats_th_day, 0)} <small>sats/TH/dia</small>` : "—";
   const ratio = r.price_ratio != null
-    ? `${nf(r.price_ratio, r.price_ratio < 10 ? 1 : 0)}×<div class="sub">mercado hoje: ${nf(r.btc_hashprice_sats, 0)} sats</div>` : "—";
+    ? `${nf(r.price_ratio, r.price_ratio < 10 ? 1 : 0)}×<div class="sub">mercado hoje: ${nf(r.btc_hashprice_sats, 0)} sats/TH/dia</div>` : "—";
+  const ev = r.ev_eur != null
+    ? `${eur(r.ev_eur)}${r.ev_pct_cost != null ? `<div class="sub">${nf(r.ev_pct_cost, r.ev_pct_cost < 10 ? 1 : 0)}% do custo</div>` : ""}` : "—";
+  const details = `<div class="metrics">
+      ${metric("Custo", cost)}
+      ${metric("Valor esperado", ev)}
+      ${metric("Hashrate médio", hr(r.avg_ths))}
+      ${metric("Preço pago", price)}
+      ${metric("Preço × mercado", ratio)}
+      ${r.chance_pct != null ? metric("Chance de bloco", `${nf(r.chance_pct, 2)} <small>%</small><div class="sub">prêmio ≈ ${eur(r.block_value_eur)}</div>`) : ""}
+    </div>`;
+  const verdict = rentalVerdict(r);
+  const cls = r.result_eur < 0 ? "loss" : r.result_eur > 0 ? "gain" : "";
   return `<div class="rent" aria-label="Financeiro do aluguel">
     <div class="rent-head"><b>Aluguel${r.mode === "solo" ? " solo" : r.mode ? " " + esc(r.mode) : ""}</b><span>${esc(head)}</span></div>
     ${r.progress != null ? `<div class="meter" role="progressbar" aria-valuenow="${Math.round(r.progress * 100)}" aria-valuemin="0" aria-valuemax="100" aria-label="Andamento do aluguel"><span class="progress" style="width:${r.progress * 100}%"></span></div>` : ""}
     ${period ? `<div class="card-sub" style="margin-top:6px">${esc(period)}</div>` : ""}
-    <div class="metrics">
-      ${metric("Custo", `${Math.round(r.cost_btc * 1e8).toLocaleString("pt-BR")} <small>sats</small><div class="sub">${r.cost_btc.toLocaleString("pt-BR", { maximumFractionDigits: 8 })} BTC${r.cost_eur != null ? ", " + eur(r.cost_eur) : ""}</div>`)}
-      ${metric("Valor esperado", ev)}
-      ${r.chance_pct != null ? metric("Chance de bloco", `${nf(r.chance_pct, 2)} <small>%</small><div class="sub">prêmio ≈ ${eur(r.block_value_eur)}</div>`) : metric("Hashrate médio", hr(r.avg_ths))}
-      ${metric("Preço pago", price)}
-      ${metric("Preço × mercado", ratio)}
-      ${r.chance_pct != null ? metric("Hashrate médio", hr(r.avg_ths)) : ""}
-    </div>
+    ${verdict ? `<div class="rent-result"><div class="k">Resultado esperado</div><div class="v ${cls}">${eurSigned(r.result_eur)}</div></div>
+    <p class="verdict">${verdict}</p>
+    <details class="rent-more" data-keep="${esc(key)}"${openDetails.has(key) ? " open" : ""}><summary>Detalhes do aluguel</summary>${details}</details>` : details}
     ${r.note ? `<div class="err">${esc(r.note)}</div>` : ""}
   </div>`;
 }
 
 const eurSigned = v => v == null ? "—" : (v > 0 ? "+" : v < 0 ? "−" : "") + eur(Math.abs(v));
 const kwh = v => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 3 });
-function moneyMetric(k, v, sub) {
+function moneyMetric(k, v, sub, extra = "") {
   const cls = v == null ? "" : v < 0 ? "loss" : v > 0 ? "gain" : "";
-  return `<div class="metric"><div class="k">${k}</div><div class="v ${cls}">${eurSigned(v)}</div>${sub ? `<div class="sub">${sub}</div>` : ""}</div>`;
+  return `<div class="metric ${extra}"><div class="k">${k}</div><div class="v ${cls}">${eurSigned(v)}</div>${sub ? `<div class="sub">${sub}</div>` : ""}</div>`;
 }
-function financeBlock(f) {
+const STOPPED = { offline: "parada", sleeping: "dormindo" };
+function financeVerdict(f, status) {  // uma frase com o veredito e o porquê
+  const P = f.profit_eur_day, T = f.tariff_eur_kwh, B = f.breakeven_eur_kwh;
+  const base = f.avg_source === "média das últimas 24 h" ? " Os números abaixo são da média das últimas 24 h." : "";
+  if (STOPPED[status]) return `<b class="loss">Agora: ${STOPPED[status]}, sem receita.</b>`
+    + (status === "offline" && f.energy_eur_day != null ? ` Se ela continuar ligada no hosting, a energia (≈ ${eur(f.energy_eur_day)} por dia) continua sendo cobrada.` : "")
+    + base;
+  if (P == null) return f.revenue_eur_day != null
+    ? `Rende ${eur(f.revenue_eur_day)} por dia. Falta saber o consumo (em W) para dizer se dá lucro.` : "";
+  const lose = P < 0;
+  let s = `<b class="${lose ? "loss" : "gain"}">${lose ? "Perde" : "Ganha"} ${eur(Math.abs(P))} por dia.</b>`;
+  if (T && B != null) s += lose
+    ? ` Você paga ${kwh(T)} €/kWh, e ela só empata até ${kwh(B)} €/kWh.`
+    : ` Ela aguenta energia até ${kwh(B)} €/kWh, e você paga ${kwh(T)} €/kWh.`;
+  const EP = f.expected_profit_eur_day;
+  if (EP != null && f.avg_ths != null && f.avg_ths < f.expected_ths * 0.9)
+    s += ` Nos ${nf(f.expected_ths, 0)} TH/s esperados, ${EP < 0 ? `ainda perderia ${eur(-EP)}` : `ganharia ${eur(EP)}`} por dia.`;
+  return s;
+}
+function financeBlock(f, status) {
   const energySub = f.energy_basis === "fixo" ? "taxa fixa mensal"
     : f.kwh_day != null ? `${nf(f.power_w, 0)} W ${esc(f.power_source || "")}, ${nf(f.kwh_day, 1)} kWh/dia` : "";
   const revSub = f.avg_ths != null ? `${hrText(f.avg_ths)}, ${esc(f.avg_source)}${f.fee_pct ? `, taxa ${nf(f.fee_pct, 1)}%` : ""}` : "";
-  const expected = f.expected_revenue_eur_day != null && f.avg_ths != null && f.avg_ths < f.expected_ths * 0.9
-    ? `<div class="card-sub" style="margin-top:8px">Com os ${nf(f.expected_ths, 0)} TH/s esperados: ${eur(f.expected_revenue_eur_day)}/dia de receita${f.expected_profit_eur_day != null ? `, resultado ${eurSigned(f.expected_profit_eur_day)}/dia` : ""}.</div>` : "";
+  const verdict = financeVerdict(f, status);
   return `<div class="rent fin" aria-label="Financeiro da máquina">
     <div class="rent-head"><b>Financeiro</b><span>por dia, pelo valor esperado (sem sorte)</span></div>
+    ${verdict ? `<p class="verdict">${verdict}</p>` : ""}
     <div class="metrics">
+      ${moneyMetric("Resultado", f.profit_eur_day, f.profit_eur_month != null ? `≈ ${eurSigned(f.profit_eur_month)} por mês` : "", "lead")}
       ${metric("Receita", f.revenue_eur_day != null ? `${eur(f.revenue_eur_day)}<div class="sub">${revSub}</div>` : "—")}
       ${metric("Energia", f.energy_eur_day != null ? `${eur(f.energy_eur_day)}<div class="sub">${energySub}</div>` : "—")}
-      ${moneyMetric("Resultado", f.profit_eur_day, f.profit_eur_month != null ? `${eurSigned(f.profit_eur_month)} por mês` : "")}
-      ${f.breakeven_eur_kwh != null ? metric("Empata com energia a", `${kwh(f.breakeven_eur_kwh)} <small>€/kWh</small>`) : ""}
     </div>
-    ${expected}
     ${f.note ? `<div class="err">${esc(f.note)}</div>` : ""}
   </div>`;
 }
@@ -788,7 +850,7 @@ function minerCard(m) {
       ${L.frequency_mhz ? `<dt>Frequência / voltagem</dt><dd>${nf(L.frequency_mhz, 0)} MHz / ${nf(L.core_voltage_mv, 0)} mV</dd>` : ""}
       ${L.firmware ? `<dt>Firmware</dt><dd>${esc(L.firmware)}</dd>` : ""}
     </dl>`;
-    if (m.finance) body += financeBlock(m.finance);
+    if (m.finance) body += financeBlock(m.finance, m.status);
   } else if (m.type === "pool_only" || m.type === "rental") {
     body = `<div class="metrics">
       ${metric("Hashrate na pool", P ? hr(P.hashrate_ths) : "—")}
@@ -797,7 +859,7 @@ function minerCard(m) {
       ${metric("Melhor dificuldade", compact(P?.best_diff))}
     </div>
     <dl class="facts"><dt>Worker</dt><dd>${esc(m.worker)}</dd><dt>Dados vindos da pool</dt><dd>${esc(POOL_LABEL[m.pool] || m.pool)}</dd></dl>
-    ${m.rental ? rentalBlock(m.rental) : ""}${m.finance ? financeBlock(m.finance) : ""}`;
+    ${m.rental ? rentalBlock(m.rental, "rent-" + m.id) : ""}${m.finance ? financeBlock(m.finance, m.status) : ""}`;
   }
   const tags = [TYPE_LABEL[m.type], L?.model, m.coin === "BCH" ? "Bitcoin Cash" : "", P?.mode === "solo" ? "Solo" : P?.mode]
     .filter(Boolean).map(t => `<span class="tag">${esc(t)}</span>`).join("");
@@ -858,7 +920,34 @@ function totalsHtml(t) {
   const box = (k, v, u) => `<div><div class="k">${k}</div><div class="v">${v}${u ? `<small>${u}</small>` : ""}</div></div>`;
   return box("Hashrate total", hv, hu) + box("Máquinas ativas", t.online, `de ${t.total}`)
     + (t.power_w ? box("Potência", nf(t.power_w, 0), "W") : "") + (eff ? box("Eficiência", nf(eff, 1), "J/TH") : "")
-    + (t.finance?.profit_eur_day != null ? `<div title="Receita esperada ${eur(t.finance.revenue_eur_day)} − energia ${eur(t.finance.energy_eur_day)} por dia${t.finance.missing_power.length ? ` (sem custo de energia: ${esc(t.finance.missing_power.join(", "))})` : ""}"><div class="k">Resultado/dia</div><div class="v">${eurSigned(t.finance.profit_eur_day)}</div></div>` : "");
+    + ownTotal(t.finance) + rentalTotal(t.rentals);
+}
+const signCls = v => v < 0 ? "loss" : v > 0 ? "gain" : "";
+function ownTotal(f) {                 // só as máquinas próprias: receita esperada − energia, por dia
+  if (f?.profit_eur_day == null) return "";
+  const miss = f.missing_power.length ? `<br>sem custo de energia: ${esc(f.missing_power.join(", "))}` : "";
+  return `<div><div class="k">Máquinas próprias</div><div class="v ${signCls(f.profit_eur_day)}">${eurSigned(f.profit_eur_day)}<small>/dia</small></div>
+    <div class="sub">receita ${eur(f.revenue_eur_day)} − energia ${eur(f.energy_eur_day)}<br>≈ ${eurSigned(f.profit_eur_month)} por mês${miss}</div></div>`;
+}
+function rentalTotal(r) {              // aluguéis terminados + em andamento: valor esperado − custo
+  if (!r) return "";
+  return `<div><div class="k">Aluguéis</div><div class="v ${signCls(r.result_eur)}">${eurSigned(r.result_eur)}</div>
+    <div class="sub">${r.count} ${r.count === 1 ? "aluguel" : "aluguéis"}${r.active ? `, ${r.active} em andamento` : ""}<br>valor esperado − custo</div></div>`;
+}
+function ledgerHtml(list) {            // aluguéis terminados: guardados no banco, o × do cartão não apaga
+  if (!list?.length) return "";
+  const rows = list.map(d => `<tr>
+      <td>${esc(d.name)}${d.mode ? `<span class="tag">${esc(d.mode === "solo" ? "Solo" : d.mode)}</span>` : ""}<span class="who">terminou ${esc(fmtTime(d.end, "", true))}</span></td>
+      <td class="num">${eur(d.cost_eur)}</td><td class="num">${eur(d.ev_eur)}</td>
+      <td class="num ${signCls(d.result_eur)}">${eurSigned(d.result_eur)}</td></tr>`).join("");
+  const total = list.reduce((a, d) => a + (d.result_eur || 0), 0);
+  return `<h2>Aluguéis terminados</h2>
+  <section class="card ledger" aria-label="Aluguéis terminados">
+    <div class="card-sub">Resultado de cada aluguel, guardado quando ele terminou. Fechar o cartão com × não apaga daqui.</div>
+    <div class="scroll"><table><thead><tr><th>Aluguel</th><th class="num">Custo</th><th class="num">Valor esperado</th><th class="num">Resultado</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td>Total, ${list.length} ${list.length === 1 ? "aluguel" : "aluguéis"}</td><td></td><td></td><td class="num ${signCls(total)}">${eurSigned(total)}</td></tr></tfoot></table></div>
+  </section>`;
 }
 function bayHtml(m) {
   const P = m.pool_worker, L = m.local, now = Date.now() / 1000;
@@ -1031,6 +1120,7 @@ async function refresh() {
     document.getElementById("miners").innerHTML = visible.length ? visible.map(minerCard).join("") : '<div class="empty">Nenhuma máquina visível</div>';
     document.getElementById("miners-hidden").innerHTML = hidden.length
       ? `${hidden.length === 1 ? "Aluguel encerrado fechado" : "Aluguéis encerrados fechados"}: ${hidden.map(m => esc(m.name)).join(", ")}. <button class="linkbtn" data-showall>Mostrar de novo</button>` : "";
+    document.getElementById("ledger").innerHTML = ledgerHtml(s.rentals_done);
     if (hist) drawChart();
     document.getElementById("pools").innerHTML = s.pools.map(poolCard).join("");
     renderAlerts(s.alerts);

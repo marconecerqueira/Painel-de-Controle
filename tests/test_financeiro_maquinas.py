@@ -135,3 +135,8 @@ def test_collector_own_finance_against_simulator(tmp_path):
         s19["revenue_eur_day"] + bitaxe["revenue_eur_day"] + nerd["revenue_eur_day"])
     assert t["missing_power"] == ["Nerd"]
     assert snap["market"]["btc_eur"] > 0
+
+
+def test_tariff_goes_with_the_result_for_the_why_sentence():
+    assert own()["tariff_eur_kwh"] == 0.14                      # a tela compara com o ponto de empate
+    assert "tariff_eur_kwh" not in own(fixed_eur_month=30.0)     # taxa fixa: não há tarifa por kWh
