@@ -59,7 +59,8 @@ def test_new_rental_after_configured_one_is_flagged():
     r = compute_rental(cost_btc=0.001, hours=2, start=0.0, start_source="config",
                        newer_run_start=5 * 3600, avg_ths=100, avg_samples=3, current_ths=100,
                        mode="solo", coin_market=BCH, btc_market=BTC, now=6 * 3600)
-    assert r["state"] == "novo" and "config.toml" in r["note"] and "ev_eur" not in r
+    assert r["state"] == "novo" and "aluguel novo" in r["note"] and "config.toml" in r["note_hint"]
+    assert "ev_eur" not in r
 
 
 def test_waiting_without_start():
@@ -145,4 +146,47 @@ def test_rental_totals_sum_finished_and_active(tmp_path):
                    "c": {"state": "novo"}}
     t = col._rental_totals()
     db.close()
-    assert t == {"result_eur": pytest.approx(-5.5), "count": 3, "active": 1}
+    assert t == {"result_eur": pytest.approx(-5.5), "count": 3, "active": 1, "missing": 1}
+
+
+def test_previous_rental_is_saved_when_a_new_one_starts(tmp_path):
+    """Aluguéis encostados: o do config pula de "ativo" direto para "novo" e não pode sumir da lista."""
+    from minerador.models import PoolReading, PoolWorker
+    from datetime import datetime
+    when = datetime.fromtimestamp(time.time() - 10 * 3600).replace(second=0, microsecond=0)
+    start = when.timestamp()                     # aluguel do config: 2 h, acabou há 8 h
+    cfg = parse_config({
+        "server": {"db_path": str(tmp_path / "t.db")},
+        "miners": [{"id": "solo", "name": "Solo", "type": "rental", "pool": "hc", "worker": "aluguel-solo",
+                    "cost_btc": 0.00118, "rental_hours": 2, "rental_start": when.strftime("%Y-%m-%d %H:%M")}],
+        "pools": {"hc": {"type": "hashcommander", "address": simulador.BCH_ADDR, "base_url": "http://sim/hc"}},
+        "blocks": {"base_url": "http://sim/mempool"},
+    })
+
+    async def go():
+        db = Database(cfg.db_path)
+        for k in range(1, 12):                    # hashrate gravado durante o aluguel antigo
+            w = PoolWorker(name="aluguel-solo", hashrate_ths=200.0, best_diff=None, last_seen=start + k * 600, online=True)
+            await db.add_pool_reading(start + k * 600, "hc", PoolReading(ok=True, workers=[w], coin="BCH"))
+        col = Collector(cfg, db)
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=simulador.app)) as client:
+            col._client = client
+            await col.poll_pools_once()           # o simulador mostra o worker rodando agora: aluguel novo
+            await col.finance_once()
+        snap = col.snapshot()
+        db.close()
+        return snap
+
+    snap = asyncio.run(go())
+    assert snap["miners"][0]["rental"]["state"] == "novo"
+    done = snap["rentals_done"]
+    assert len(done) == 1 and done[0]["start"] == start and done[0]["result_eur"] is not None
+    assert snap["totals"]["rentals"]["missing"] == 1          # o novo ainda não tem custo
+
+
+def test_ignored_rental_stays_out_of_the_list(tmp_path):
+    db = Database(str(tmp_path / "t.db"))
+    db.save_rental_result("hc-solo", 100.0, {"ignored": True})             # o usuário deixou este de fora
+    assert not db.save_rental_result("hc-solo", 100.0, {"name": "Solo", "start": 100.0, "result_eur": -6.0})
+    assert db.rental_results() == []
+    db.close()

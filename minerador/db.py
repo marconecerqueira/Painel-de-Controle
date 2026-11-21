@@ -203,7 +203,8 @@ class Database:
         """Aluguéis terminados, do mais recente para o mais antigo."""
         with self._lock:
             rows = self._conn.execute("SELECT data FROM rental_results ORDER BY start DESC LIMIT ?", (limit,))
-            return [json.loads(r[0]) for r in rows]
+            # "ignored": aluguel que o usuário decidiu deixar fora da lista (a linha só impede regravar)
+            return [d for d in (json.loads(r[0]) for r in rows) if not d.get("ignored")]
 
     # ------------------------------------------------------------------ histórico
     def _bucketed(self, sql: str, args: tuple, bucket_s: int) -> list[list[float]]:

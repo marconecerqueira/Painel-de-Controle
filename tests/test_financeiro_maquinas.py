@@ -63,10 +63,10 @@ def test_fixed_monthly_fee_instead_of_tariff():
 
 def test_without_power_or_tariff_there_is_a_note():
     r = own(power_w=None)
-    assert r["energy_eur_day"] is None and "power_w" in r["note"]
+    assert r["energy_eur_day"] is None and r["note"] and "power_w" in r["note_hint"]
     assert r["revenue_eur_day"] > 0 and r["profit_eur_day"] is None
     r = own(tariff_eur_kwh=None)
-    assert r["energy_eur_day"] is None and "energy_eur_kwh" in r["note"]
+    assert r["energy_eur_day"] is None and r["note"] and "energy_eur_kwh" in r["note_hint"]
 
 
 def test_falls_back_to_current_hashrate_and_handles_missing_market():
@@ -128,7 +128,7 @@ def test_collector_own_finance_against_simulator(tmp_path):
     assert s19["power_source"] == "nominal (config)" and s19["energy_eur_day"] > 10
     assert s19["expected_revenue_eur_day"] > s19["revenue_eur_day"] > 0
     assert bitaxe["power_source"] == "medido" and bitaxe["power_w"] < 99   # leitura vence o config
-    assert nerd["energy_eur_day"] is None and "power_w" in nerd["note"]
+    assert nerd["energy_eur_day"] is None and "power_w" in nerd["note_hint"]
     t = snap["totals"]["finance"]
     assert t["energy_eur_day"] == pytest.approx(s19["energy_eur_day"] + bitaxe["energy_eur_day"])
     assert t["revenue_eur_day"] == pytest.approx(

@@ -273,6 +273,15 @@ class Collector:
                 mode=mode, coin_market=coin, btc_market=btc, now=now)
             if r["state"] == "terminado" and r.get("result_eur") is not None:
                 await self._save_rental_result(m, r)
+            elif r["state"] == "novo":
+                # começou outro aluguel: o do config já acabou, mesmo sem passar por "terminado" aqui
+                # (aluguéis encostados um no outro, ou painel desligado no meio). Guarda-o antes que se perca.
+                prev = compute_rental(
+                    cost_btc=m.cost_btc, hours=m.rental_hours, start=start, start_source=source,
+                    newer_run_start=None, avg_ths=avg, avg_samples=n, current_ths=None, mode=mode,
+                    coin_market=coin, btc_market=btc, now=start + m.rental_hours * 3600 + 1)
+                if prev.get("result_eur") is not None:
+                    await self._save_rental_result(m, prev)
 
     async def _save_rental_result(self, m, r: dict) -> None:
         """Guarda o resultado do aluguel terminado (só a 1ª vez: os valores ficam congelados)."""
@@ -446,10 +455,11 @@ class Collector:
         done = [d["result_eur"] for d in self.rentals_done if d.get("result_eur") is not None]
         active = [r["result_eur"] for r in self.rentals.values()
                   if r.get("state") == "ativo" and r.get("result_eur") is not None]
-        if not done and not active:
+        missing = sum(1 for r in self.rentals.values() if r.get("state") == "novo")  # custo não informado
+        if not done and not active and not missing:
             return None
         return {"result_eur": sum(done) + sum(active), "count": len(done) + len(active),
-                "active": len(active)}
+                "active": len(active), "missing": missing}
 
     # ------------------------------------------------------------------ histórico
     async def _pool_total(self, pool_id: str, range_: str, since: float, bucket_s: int) -> list | None:

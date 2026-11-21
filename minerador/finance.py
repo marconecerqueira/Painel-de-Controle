@@ -106,14 +106,16 @@ def compute_own(*, avg_ths: float | None, avg_samples: int, current_ths: float |
                  "coin": market["coin"] if market else None,
                  "kwh_day": None, "energy_eur_day": None, "energy_basis": None,
                  "revenue_coin_day": None, "revenue_eur_day": None,
-                 "profit_eur_day": None, "profit_eur_month": None, "note": None}
+                 "profit_eur_day": None, "profit_eur_month": None, "note": None, "note_hint": None}
 
     if fixed_eur_month:
         out.update(energy_basis="fixo", energy_eur_day=fixed_eur_month / DAYS_PER_MONTH)
     elif power_w is None:
-        out["note"] = "informe power_w (consumo em W) no config.toml para calcular o custo de energia"
+        out.update(note="Falta o consumo desta máquina (em W) para calcular a energia.",
+                   note_hint="power_w no config.toml")
     elif not tariff_eur_kwh:
-        out["note"] = "informe energy_eur_kwh em [finance] no config.toml para calcular o custo de energia"
+        out.update(note="Falta o preço da energia (€/kWh) para calcular o custo.",
+                   note_hint="energy_eur_kwh em [finance] no config.toml")
     else:
         out["kwh_day"] = power_w * 24 / 1000
         out.update(energy_basis="tarifa", energy_eur_day=out["kwh_day"] * tariff_eur_kwh,
@@ -146,19 +148,20 @@ def compute_rental(*, cost_btc: float, hours: float, start: float | None, start_
                    btc_market: dict | None, now: float) -> dict:
     """Monta o resumo financeiro de um aluguel (função pura: fácil de testar)."""
     out: dict = {"cost_btc": cost_btc, "hours": hours, "start": start, "start_source": start_source,
-                 "mode": mode, "state": "aguardando", "note": None}
+                 "mode": mode, "state": "aguardando", "note": None, "note_hint": None}
     if btc_market:
         out["cost_eur"] = cost_btc * btc_market["price_eur"]
     if start is None:
-        out["note"] = "aguardando o aluguel aparecer na pool para saber quando começou"
+        out["note"] = "Esperando o aluguel aparecer na pool para saber quando começou."
         return out
 
     end = start + hours * 3600
     out["end"] = end
     if newer_run_start is not None and newer_run_start > end + 600:
         out["state"] = "novo"
-        out["note"] = ("novo aluguel detectado: atualize cost_btc, rental_hours e rental_start "
-                       "no config.toml")
+        out["note"] = ("Começou um aluguel novo: falta dizer quanto você pagou e por quantas horas "
+                       "para ver o resultado.")
+        out["note_hint"] = "cost_btc, rental_hours e rental_start no config.toml"
         return out
     out["state"] = "ativo" if now < end else "terminado"
     out["progress"] = max(0.0, min(1.0, (now - start) / (end - start)))
