@@ -58,12 +58,12 @@
   .num, .v, td.num { font-variant-numeric: tabular-nums; }
 
   /* ---------------- painel do rack (topo) */
-  .rack { background: var(--pcb); color: var(--silk); border-radius: 16px; padding: 18px 18px 16px; box-shadow: inset 0 0 0 1px var(--pcb-edge); }
-  .rack-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+  .rack { background: var(--pcb); color: var(--silk); border-radius: 16px; padding: 14px 16px; box-shadow: inset 0 0 0 1px var(--pcb-edge); }
+  .rack-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
   h1 { font: 700 26px/1.1 var(--cond); margin: 0; letter-spacing: .01em; }
   h1.brand { line-height: 0; margin: -6px 0 2px -4px; }
-  h1.brand img { display: block; height: 156px; width: auto; }
-  @media (max-width: 560px) { h1.brand img { height: 124px; } }
+  h1.brand img { display: block; height: 104px; width: auto; }
+  @media (max-width: 560px) { h1.brand img { height: 84px; } }
   .live { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--silk-2); margin-top: 4px; }
   .live i { width: 8px; height: 8px; border-radius: 50%; background: var(--led-good); box-shadow: 0 0 6px var(--led-good); }
   .live.stale { color: #ffb3b0; }
@@ -91,10 +91,10 @@
   .totals { display: flex; gap: 28px; flex-wrap: wrap; text-align: right; }
   .totals div { min-width: 0; }
   .totals .k { font-size: 12.5px; color: var(--silk-2); }
-  .totals .v { font: 600 30px/1.05 var(--cond); }
+  .totals .v { font: 600 26px/1.05 var(--cond); }
   .totals .v small { font: 500 15px var(--cond); color: var(--silk-2); margin-left: 3px; }
 
-  .bays { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; margin-top: 16px; }
+  .bays { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin-top: 12px; }
   .bay { display: block; color: inherit; background: var(--slot); border-radius: 10px; padding: 10px 12px 11px; box-shadow: inset 0 0 0 1px rgba(232,241,236,.12); min-width: 0; }
   .bay:hover { text-decoration: none; box-shadow: inset 0 0 0 1px rgba(232,241,236,.35); }
   .bay-head { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; min-width: 0; }
@@ -103,7 +103,7 @@
   .led.online { background: var(--led-good); box-shadow: 0 0 7px var(--led-good); }
   .led.warning { background: var(--led-warn); box-shadow: 0 0 7px var(--led-warn); }
   .led.offline { background: var(--led-bad); box-shadow: 0 0 7px var(--led-bad); }
-  .bay-hash { font: 600 26px/1.1 var(--cond); margin-top: 6px; }
+  .bay-hash { font: 600 22px/1.1 var(--cond); margin-top: 4px; }
   .bay-hash small { font: 500 14px var(--cond); color: var(--silk-2); margin-left: 3px; }
   .bay-state { font-size: 12.5px; color: var(--silk-2); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bay-bar { height: 3px; border-radius: 2px; background: rgba(232,241,236,.14); margin-top: 8px; overflow: hidden; }
@@ -111,21 +111,26 @@
   .bay-bar span.low { background: var(--led-warn); }
 
   /* ---------------- alertas ativos (logo abaixo do rack) */
-  .alert-banner { margin-top: 12px; border-radius: 10px; padding: 12px 14px 12px 16px; background: color-mix(in srgb, var(--critical) 10%, var(--surface)); box-shadow: inset 4px 0 0 var(--critical), inset 0 0 0 1px color-mix(in srgb, var(--critical) 35%, transparent); display: none; }
-  .alert-banner b { display: block; font: 600 16px var(--cond); margin-bottom: 4px; }
-  .alert-banner ul { margin: 0; padding: 0; list-style: none; font-size: 14px; }
-  .alert-banner li { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-  .alert-banner li + li { margin-top: 4px; }
+  .alert-banner { margin-top: 12px; border-radius: 10px; padding: 4px 10px 4px 14px; background: color-mix(in srgb, var(--critical) 10%, var(--surface));
+    box-shadow: inset 4px 0 0 var(--critical), inset 0 0 0 1px color-mix(in srgb, var(--critical) 35%, transparent); }
+  .alert-banner.info { background: color-mix(in srgb, var(--accent) 8%, var(--surface)); box-shadow: inset 4px 0 0 var(--accent), inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent); }
+  .alert-banner[hidden] { display: none; }
+  .al { display: grid; grid-template-columns: 20px minmax(0, 1fr) 30px; gap: 8px; align-items: start; padding: 8px 0; font-size: 14px; }
+  .al + .al { border-top: 1px solid var(--hair); }
+  .al-ic { font-size: 12px; line-height: 21px; }
+  .al .close { margin: -4px 0 0; }
 
   /* ---------------- seções e cards */
-  h2 { font: 600 21px/1.2 var(--cond); margin: 36px 0 12px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  h2 { font: 600 20px/1.2 var(--cond); margin: 26px 0 10px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
   h2 .aside { font: 400 13.5px var(--text); color: var(--muted); }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; align-items: start; }
-  .grid > * { min-width: 0; }
+  .grid { display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; }
+  .grid > * { min-width: 0; flex: 1 1 330px; }
+  .grid > .card { display: flex; flex-direction: column; }
+  .grid > .card > .stamp { margin-top: auto; padding-top: 10px; }
   .card { background: var(--surface); border-radius: 12px; box-shadow: inset 0 0 0 1px var(--hair); padding: 16px; min-width: 0; scroll-margin-top: 16px; }
   .card:target { box-shadow: inset 0 0 0 2px var(--accent); }
   .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-  .card-title { font: 600 19px/1.2 var(--cond); }
+  .card-title { font: 600 18px/1.2 var(--cond); }
   .card-sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
   .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
   .tag { display: inline-block; font-size: 12px; font-weight: 500; padding: 1px 8px; border-radius: 999px; white-space: nowrap; background: var(--track); color: var(--ink-2); }
@@ -147,7 +152,7 @@
 
   .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 12px; margin-top: 14px; }
   .metric .k { color: var(--muted); font-size: 12.5px; line-height: 1.25; }
-  .metric .v { font: 600 20px/1.2 var(--cond); margin-top: 2px; }
+  .metric .v { font: 600 18px/1.2 var(--cond); margin-top: 2px; }
   .metric .v small { font: 500 13px var(--cond); color: var(--ink-2); }
   .metric .sub { color: var(--muted); font: 400 12.5px/1.3 var(--text); margin-top: 1px; }
   .meter { height: 5px; background: var(--track); border-radius: 999px; overflow: hidden; margin-top: 5px; }
@@ -248,8 +253,8 @@
   /* ---------------- hora local e tempo (Open-Meteo): céu animado ao fundo, globo 3D à esquerda.
      Paleta própria (texto claro sobre o céu), igual nos dois temas. Classe sky-* vem do tempo atual. */
   .wx { --wx-ink: #f3f7fc; --wx-muted: rgba(235,243,252,.72); --wx-line: rgba(255,255,255,.16);
-    position: relative; overflow: hidden; isolation: isolate; margin-top: 12px; padding: 18px 22px; color: var(--wx-ink);
-    display: grid; grid-template-columns: 172px minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 14px 26px; align-items: center;
+    position: relative; overflow: hidden; isolation: isolate; margin-top: 12px; padding: 12px 20px; color: var(--wx-ink);
+    display: grid; grid-template-columns: 112px minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 10px 24px; align-items: center;
     background: linear-gradient(180deg, #050b1f, #0d1838 60%, #1a2350); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
     transition: background .8s ease; text-shadow: 0 1px 3px rgba(0,0,0,.35); }
   .wx > :not(.wx-bg) { position: relative; z-index: 1; }
@@ -309,27 +314,27 @@
   .wx.is-night.sky-rain { background: linear-gradient(180deg, #0a1018, #18222f 60%, #222e3c); }
   .wx.is-night.sky-snow { background: linear-gradient(180deg, #141d2c, #27354a 60%, #3a4a61); }
   /* globo */
-  .wx-globe { width: 172px; aspect-ratio: 1; }
+  .wx-globe { width: 112px; aspect-ratio: 1; }
   .wx-globe canvas { display: block; width: 100%; height: 100%; }
   /* textos */
-  .wx-time { font: 600 44px/1 var(--cond); font-variant-numeric: tabular-nums; letter-spacing: .01em; }
-  .wx-time small { font-size: 22px; color: var(--wx-muted); margin-left: 2px; }
+  .wx-time { font: 600 34px/1 var(--cond); font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+  .wx-time small { font-size: 18px; color: var(--wx-muted); margin-left: 2px; }
   .wx-date { margin-top: 6px; font-size: 15px; color: var(--wx-muted); }
   .wx-date::first-letter { text-transform: uppercase; }
   .wx-place { display: flex; align-items: center; gap: 6px; margin-top: 6px; font: 600 15px var(--cond); }
   .wx-place svg { width: 16px; height: 16px; flex: none; color: #7ee2a0; }
   .wx-now { display: flex; align-items: center; gap: 14px; }
-  .wx-icon { width: 76px; height: 76px; flex: none; filter: drop-shadow(0 2px 6px rgba(0,0,0,.3)); }
+  .wx-icon { width: 54px; height: 54px; flex: none; filter: drop-shadow(0 2px 6px rgba(0,0,0,.3)); }
   .wx-icon svg { width: 100%; height: 100%; overflow: visible; }
-  .wx-temp { font: 600 44px/1 var(--cond); font-variant-numeric: tabular-nums; }
-  .wx-temp small { font-size: 22px; color: var(--wx-muted); margin-left: 2px; }
+  .wx-temp { font: 600 34px/1 var(--cond); font-variant-numeric: tabular-nums; }
+  .wx-temp small { font-size: 18px; color: var(--wx-muted); margin-left: 2px; }
   .wx-desc { margin-top: 4px; font-size: 15px; color: var(--wx-muted); }
-  .wx-stats { margin: 0; display: grid; gap: 8px; }
-  .wx-stats div { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 7px; border-bottom: 1px solid var(--wx-line); }
+  .wx-stats { margin: 0; display: grid; gap: 6px; }
+  .wx-stats div { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 5px; border-bottom: 1px solid var(--wx-line); }
   .wx-stats div:last-child { border-bottom: 0; padding-bottom: 0; }
   .wx-stats dt { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--wx-muted); }
-  .wx-stats dt svg { width: 22px; height: 22px; flex: none; color: var(--wx-ink); overflow: visible; }
-  .wx-stats dd { margin: 0; font: 600 19px var(--cond); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .wx-stats dt svg { width: 18px; height: 18px; flex: none; color: var(--wx-ink); overflow: visible; }
+  .wx-stats dd { margin: 0; font: 600 17px var(--cond); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .wx-stats dd small { font-size: 13px; color: var(--wx-muted); font-weight: 500; }
   .wx-note { grid-column: 1 / -1; font-size: 12px; color: var(--wx-muted); margin-top: -6px; }
   .wx-note:empty { display: none; }
@@ -354,16 +359,16 @@
   @keyframes wx-bolt { 0%, 60%, 70%, 100% { opacity: 1; } 62%, 68% { opacity: .15; } }
   @media (prefers-reduced-motion: reduce) { .wx *, .wx *::before, .wx *::after { animation: none !important; } }
   @media (max-width: 1060px) {
-    .wx { grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1fr); }
-    .wx-globe { width: 150px; grid-row: span 1; }
+    .wx { grid-template-columns: 104px minmax(0, 1fr) minmax(0, 1fr); }
+    .wx-globe { width: 104px; grid-row: span 1; }
     .wx-stats { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .wx-stats div { border-bottom: 0; padding-bottom: 0; }
   }
   @media (max-width: 640px) {
-    .wx { grid-template-columns: 116px minmax(0, 1fr); padding: 16px; gap: 12px 16px; }
-    .wx-globe { width: 116px; }
+    .wx { grid-template-columns: 88px minmax(0, 1fr); padding: 12px 14px; gap: 10px 14px; }
+    .wx-globe { width: 88px; }
     .wx-now { grid-column: 1 / -1; }
-    .wx-time, .wx-temp { font-size: 36px; } .wx-icon { width: 62px; height: 62px; }
+    .wx-time, .wx-temp { font-size: 30px; } .wx-icon { width: 46px; height: 46px; }
     .wx-stats { grid-template-columns: minmax(0, 1fr); }
     .wx-stats div { border-bottom: 1px solid var(--wx-line); padding-bottom: 7px; }
   }
@@ -392,12 +397,12 @@
 
   /* ---------------- cadeia de blocos em cubos neon: na fila (verde claro) | minerados (verde escuro + pool em dourado)
      Sempre escura, nos dois temas. --t = relógio do navegador: as animações continuam na mesma fase quando a lista é redesenhada. */
-  .neo { --s: 140px; --n: #4ade80; --n-hi: #a7f3c4; --g: #e3b341; --t: 0; position: relative; margin-top: 12px; border-radius: 14px;
+  .neo { --s: 108px; --n: #4ade80; --n-hi: #a7f3c4; --g: #e3b341; --t: 0; position: relative; margin-top: 12px; border-radius: 14px;
     color: #eafff1; isolation: isolate; overflow: hidden;
     background: radial-gradient(ellipse 50% 80% at 50% 35%, rgba(74,222,128,.13), transparent 70%),
                 radial-gradient(circle at 1px 1px, rgba(167,243,196,.13) 1px, transparent 1.5px) 0 0 / 22px 22px, #070e0b;
     box-shadow: inset 0 0 0 1px rgba(74,222,128,.18); }
-  .neo-row { display: flex; align-items: flex-start; overflow-x: auto; padding: 38px 20px 14px; scroll-snap-type: x proximity;
+  .neo-row { display: flex; align-items: flex-start; overflow-x: auto; padding: 32px 16px 8px; scroll-snap-type: x proximity;
     scrollbar-width: thin; scrollbar-color: rgba(74,222,128,.45) transparent; }
   .neo-row:focus-visible { outline: 2px solid var(--n); outline-offset: -4px; border-radius: 14px; }
   .neo-item { flex: 0 0 auto; width: calc(var(--s) * 1.6); text-align: center; scroll-snap-align: center; color: inherit; text-decoration: none !important; }
@@ -424,15 +429,15 @@
       linear-gradient(var(--b), var(--b)) 0 100% / 14px 2px, linear-gradient(var(--b), var(--b)) 0 100% / 2px 14px,
       linear-gradient(var(--b), var(--b)) 100% 100% / 14px 2px, linear-gradient(var(--b), var(--b)) 100% 100% / 2px 14px;
     background-repeat: no-repeat; }
-  .neo .lbl { font: 600 calc(var(--s) * .072) var(--cond); letter-spacing: .14em; text-transform: uppercase; color: var(--n-hi); }
+  .neo .lbl { font: 600 max(8.5px, calc(var(--s) * .072)) var(--cond); letter-spacing: .14em; text-transform: uppercase; color: var(--n-hi); }
   .neo .lbl::before { content: ""; display: inline-block; width: .55em; height: .55em; margin-right: .45em; background: var(--n); box-shadow: 0 0 6px var(--n); vertical-align: .08em; }
   .neo .big { font: 600 calc(var(--s) * .19) var(--cond); color: #fff; margin: 3px 0 2px; }
   .neo .mid { font: 600 calc(var(--s) * .15) var(--cond); color: #fff; margin: 3px 0; }
-  .neo .soft { font-size: calc(var(--s) * .078); color: rgba(234,255,241,.75); }
-  .neo .txs { font-size: calc(var(--s) * .085); color: rgba(234,255,241,.85); margin-top: 2px; }
+  .neo .soft { font-size: max(9px, calc(var(--s) * .078)); color: rgba(234,255,241,.75); }
+  .neo .txs { font-size: max(9.5px, calc(var(--s) * .085)); color: rgba(234,255,241,.85); margin-top: 2px; }
   .neo .txs b { color: #fff; font-weight: 600; }
   .neo .badge { margin-top: 7px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 2px 7px;
-    font: 600 calc(var(--s) * .072) var(--cond); letter-spacing: .12em; text-transform: uppercase; color: #ffe6a6;
+    font: 600 max(8.5px, calc(var(--s) * .072)) var(--cond); letter-spacing: .1em; text-transform: uppercase; color: #ffe6a6;
     border: 1.5px solid var(--g); border-radius: 5px; background: rgba(227,179,65,.16); box-shadow: 0 0 12px rgba(227,179,65,.4); text-shadow: 0 0 6px rgba(227,179,65,.6); }
   .neo .right .lbl, .neo .top .lbl { font-size: calc(var(--s) * .062); }
   /* na fila: verde claro; o próximo bloco "respira" */
@@ -494,13 +499,13 @@
   .neo .tag.found { background: linear-gradient(90deg, #e3b341, #ffd76a); color: #2a1c00; font-weight: 600; }
   .neo-item.found .neo-ring::before { border-width: 3px; box-shadow: 0 0 26px var(--rc), inset 0 0 30px var(--rc); }
   /* seta "voltar ao centro": aparece do lado onde ficou a divisória fila | minerados */
-  .neo-center { position: absolute; top: calc(38px + var(--s) * .55); z-index: 4; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center;
+  .neo-center { position: absolute; top: calc(32px + var(--s) * .55); z-index: 4; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center;
     border: 1.5px solid rgba(167,243,196,.75); background: rgba(7,14,11,.82); color: #c9ffdc; cursor: pointer;
     box-shadow: 0 0 18px rgba(74,222,128,.45); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
     transition: opacity .25s ease, transform .25s ease; animation: neo-nudge 1.6s ease-in-out infinite; }
   .neo-center[hidden] { display: none; }
   .neo-center.left { left: 10px; } .neo-center.right { right: 10px; }
-  .neo-center svg { width: 22px; height: 22px; }
+  .neo-center svg { width: 18px; height: 18px; }
   .neo-center.left svg { transform: scaleX(-1); }
   .neo-center:hover { background: rgba(20,60,35,.92); }
   .neo-center:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
@@ -508,7 +513,7 @@
   .neo-center.left { --nx: -3px; }
   .neo-key { display: flex; gap: 6px 16px; flex-wrap: wrap; padding: 0 20px 14px; font-size: 12.5px; color: rgba(234,255,241,.6); }
   .neo-key i { display: inline-block; width: 11px; height: 11px; margin-right: 6px; vertical-align: -1px; border-radius: 2px; }
-  @media (max-width: 560px) { .neo { --s: 118px; } .neo-row { padding-left: 12px; padding-right: 12px; } }
+  @media (max-width: 560px) { .neo { --s: 96px; } .neo-row { padding-left: 12px; padding-right: 12px; } }
 
   /* ---------------- festa: fogos de artifício quando uma máquina/aluguel seu acha um bloco */
   .festa { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; background: rgba(2,6,4,.55);
@@ -531,64 +536,31 @@
   @keyframes festa-spin { 0%, 100% { transform: rotateY(0); } 50% { transform: rotateY(180deg); } }
   @media (prefers-reduced-motion: reduce) { .festa, .festa-card, .festa-coin { animation: none; } }
 
-  /* ---------------- mempool ao vivo (no estilo do mempool.space): Goggles + taxa, memória, fila e transações recebidas */
-  .mp { --mp-bg: #13162a; --mp-blue: #3b74f2; --mp-ink: #e8ebf5; --mp-muted: #8b91ab; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 16px; }
-  .mp-card { background: var(--mp-bg); border-radius: 12px; padding: 18px 18px 14px; color: var(--mp-ink); min-width: 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,.04); }
-  .mp-title { display: block; text-align: center; font: 500 21px var(--text); color: var(--mp-blue); text-decoration: none !important; }
-  .mp-title svg { width: 18px; height: 18px; vertical-align: -2px; margin-left: 4px; }
-  .mp-seg { display: flex; justify-content: center; margin: 12px 0 14px; }
-  .mp-seg div { display: inline-flex; background: #1f5fd9; border-radius: 5px; overflow: hidden; flex-wrap: wrap; justify-content: center; }
-  .mp-seg button { border: 0; background: transparent; color: #fff; font: 500 15px var(--text); padding: 5px 13px; cursor: pointer; }
-  .mp-seg button[aria-pressed="true"] { background: #1243a8; }
-  .mp-seg button:focus-visible { outline: 2px solid #fff; outline-offset: -3px; }
-  .mp-box { position: relative; width: 100%; max-width: 560px; margin: 0 auto; aspect-ratio: 1; }
-  .mp-box canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
-  .mp-wait { position: absolute; inset: 0; display: grid; place-items: center; color: var(--mp-muted); font-size: 14px; text-align: center; padding: 20px; }
-  .mp-wait:empty { display: none; }
-  .mp-tip { position: absolute; z-index: 3; pointer-events: none; background: rgba(10,12,24,.94); color: var(--mp-ink); border-radius: 8px; padding: 8px 10px;
-    font-size: 12.5px; line-height: 1.45; white-space: nowrap; box-shadow: 0 4px 18px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.08); display: none; }
-  .mp-tip b { font-weight: 600; }
-  .mp-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; text-align: center; align-items: start; }
-  .mp-stats h3 { margin: 0 0 12px; font: 500 21px var(--text); color: var(--mp-blue); }
-  .mp-val { font: 500 26px var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .mp-val small { font-size: 16px; color: var(--mp-ink); margin-left: 3px; }
-  .mp-mem { position: relative; height: 26px; border-radius: 4px; background: #2d3352; overflow: hidden; margin-top: 4px; }
+  /* ---------------- mempool ao vivo (no estilo do mempool.space): taxa mínima, memória e transações na fila */
+  .mp { --mp-bg: #13162a; --mp-blue: #3b74f2; --mp-ink: #e8ebf5; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 22px;
+    align-items: start; text-align: center; background: var(--mp-bg); border-radius: 12px; padding: 14px 18px; color: var(--mp-ink); box-shadow: inset 0 0 0 1px rgba(255,255,255,.04); }
+  .mp h3 { margin: 0 0 6px; font: 500 15px var(--text); color: var(--mp-blue); }
+  .mp-val { font: 500 22px var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .mp-val small { font-size: 13px; color: var(--mp-ink); margin-left: 3px; }
+  .mp-mem { position: relative; height: 26px; border-radius: 4px; background: #2d3352; overflow: hidden; }
   .mp-mem span { position: absolute; inset: 0 auto 0 0; background: #b8900f; transition: width .6s ease; }
-  .mp-mem b { position: relative; display: block; line-height: 26px; font: 500 15px var(--text); color: #fff; font-variant-numeric: tabular-nums; }
-  .mp-chart-t { margin: 22px 0 6px; text-align: center; font: 500 21px var(--text); color: var(--mp-blue); }
-  .mp-card:last-child { display: flex; flex-direction: column; }
-  .mp-chart { position: relative; height: 330px; flex: 1 1 auto; min-height: 300px; }
-  .mp-chart svg { display: block; width: 100%; height: 100%; font-family: var(--text); overflow: visible; }
-  .mp-chart .ax { fill: var(--mp-muted); font-size: 12px; }
-  .mp-chart .ax.hr { fill: #c9cde0; font-weight: 600; }
-  .mp-note { margin-top: 8px; font-size: 12px; color: var(--mp-muted); text-align: center; }
-  @media (max-width: 900px) { .mp { grid-template-columns: minmax(0, 1fr); } }
+  .mp-mem b { position: relative; display: block; line-height: 26px; font: 500 13px var(--text); color: #fff; font-variant-numeric: tabular-nums; }
   @media (max-width: 560px) {
-    .mp-stats { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-    .mp-stats > div:nth-child(2) { grid-column: 1 / -1; order: 3; }
-    .mp-stats h3, .mp-title, .mp-chart-t { font-size: 17px; }
-    .mp-val { font-size: 21px; }
-    .mp-chart { height: 260px; }
+    .mp { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 12px; }
+    .mp > div:nth-child(2) { grid-column: 1 / -1; order: 3; }
+    .mp-val { font-size: 19px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .neo *, .neo *::before, .neo *::after { animation: none !important; }
   }
-
-  /* ---------------- histórico de alertas */
-  .alerts-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-  .events { list-style: none; margin: 10px 0 0; padding: 0; font-size: 14px; }
-  .events li { display: grid; grid-template-columns: 22px 1fr auto 30px; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--hair); }
-  .events li:last-child { border-bottom: 0; }
-  .events .d { color: var(--muted); font-size: 13px; white-space: nowrap; }
-  .events .x { color: var(--ink-2); font-size: 13px; }
-  .events .close { margin: -6px 0 0; }
 
   @media (max-width: 560px) {
     .hide-sm { display: none; }
     .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .totals { text-align: left; gap: 20px; }
     .bays { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .bay-hash { font-size: 22px; }
+    .bay:last-child:nth-child(odd) { grid-column: 1 / -1; }
+    .bay-hash { font-size: 20px; }
     .bay-state, .bay-head span { white-space: normal; }
   }
   @media (prefers-reduced-motion: reduce) { .live i.blink { animation: none; } }
@@ -609,7 +581,7 @@
     <div class="bays" id="bays" aria-label="Máquinas no rack"></div>
   </section>
 
-  <div class="alert-banner" id="alert-banner" role="alert"></div>
+  <div class="alert-banner" id="alert-banner" role="alert" hidden></div>
 
   <section class="card chart-card" aria-labelledby="chart-title">
     <div class="chart-top">
@@ -672,32 +644,11 @@
 
   <h2>Mempool</h2>
   <section class="mp" aria-label="Mempool ao vivo">
-    <div class="mp-card">
-      <a class="mp-title" id="mp-link" href="https://mempool.space/mempool-block/0" target="_blank" rel="noopener">Mempool Goggles : <span id="mp-fname">Todos</span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 3h6v6M17 3l-8 8M15 12v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h4"/></svg></a>
-      <div class="mp-seg"><div role="group" aria-label="Destacar transações" id="mp-filters">
-        <button data-f="todos" aria-pressed="true">Todos</button><button data-f="consolidacao" aria-pressed="false">Consolidação</button><button data-f="coinjoin" aria-pressed="false">Coinjoin</button><button data-f="dados" aria-pressed="false">Dados</button>
-      </div></div>
-      <div class="mp-box" id="mp-box">
-        <canvas id="mp-canvas" role="img" aria-label="Transações do próximo bloco projetado; tamanho = vbytes, cor = taxa"></canvas>
-        <div class="mp-wait" id="mp-wait">Conectando ao mempool…</div>
-        <div class="mp-tip" id="mp-tip"></div>
-      </div>
-      <div class="mp-note" id="mp-gnote">Próximo bloco projetado · tamanho = vbytes · cor = taxa (sat/vB)</div>
-    </div>
-    <div class="mp-card">
-      <div class="mp-stats">
-        <div><h3>Taxa mínima</h3><div class="mp-val" id="mp-min">— <small>sat/vB</small></div></div>
-        <div><h3>Uso de memória</h3><div class="mp-mem" role="meter" aria-label="Uso de memória do mempool" aria-valuemin="0" aria-valuemax="100" id="mp-mem"><span style="width:0"></span><b>—</b></div></div>
-        <div><h3>Não confirmado</h3><div class="mp-val" id="mp-count">— <small>Transações</small></div></div>
-      </div>
-      <h3 class="mp-chart-t">Transações Recebidas</h3>
-      <div class="mp-chart" id="mp-chart" role="img" aria-label="Transações recebidas pelo mempool nas últimas 2 horas, em vB/s"></div>
-      <div class="mp-note">vB/s nas últimas 2 h · tracejado = capacidade da rede (~1.667 vB/s, um bloco a cada 10 min)</div>
-    </div>
+    <div><h3>Taxa mínima</h3><div class="mp-val" id="mp-min">— <small>sat/vB</small></div></div>
+    <div><h3>Uso de memória</h3><div class="mp-mem" role="meter" aria-label="Uso de memória do mempool" aria-valuemin="0" aria-valuemax="100" id="mp-mem"><span style="width:0"></span><b>—</b></div></div>
+    <div><h3>Não confirmado</h3><div class="mp-val" id="mp-count">— <small>Transações</small></div></div>
   </section>
 
-  <h2>Alertas</h2>
-  <section class="card" id="alerts"></section>
 </main>
 
 <script>
@@ -930,25 +881,18 @@ function bayHtml(m) {
 
 
 function renderAlerts(a) {
-  alertState = a;
-  const banner = document.getElementById("alert-banner"), card = document.getElementById("alerts");
-  if (!a) { card.innerHTML = '<div class="muted">Alertas desativados.</div>'; banner.style.display = "none"; return; }
-  const all = a.active.filter(x => x.kind === "alert");
-  const shown = all.filter(x => !x.acked), acked = all.length - shown.length;
-  banner.style.display = shown.length ? "block" : "none";
-  banner.innerHTML = shown.length ? `<b>${shown.length === 1 ? "1 alerta ativo" : shown.length + " alertas ativos"}</b><ul>${shown.map(x =>
-    `<li><span><strong>${esc(x.title)}.</strong> ${esc(x.detail)} <span class="muted">Desde ${fmtTime(x.since, "", true)}.</span></span>
-     <button class="close" data-ack="${esc(x.key)}" title="Fechar este aviso (volta se o problema resolver e acontecer de novo)" aria-label="Fechar o aviso ${esc(x.title)}">×</button></li>`).join("")}</ul>` : "";
-  const icon = e => e.event === "action" ? "🛠" : e.event === "resolved" ? (e.kind === "info" ? "⏹" : "✅") : (e.kind === "info" ? "ℹ️" : "🔴");
-  const tg = a.telegram ? "Avisos também chegam pelo Telegram." : "Telegram não configurado: os alertas aparecem só aqui (veja docs/alertas-telegram.md).";
-  const ackNote = acked ? `<div class="hidden-note">${acked === 1 ? "1 alerta ativo foi fechado no aviso e continua valendo até resolver." : acked + " alertas ativos foram fechados no aviso e continuam valendo até resolver."} <button class="linkbtn" data-unackall>Mostrar de novo</button></div>` : "";
-  card.innerHTML = `<div class="alerts-top"><div class="card-sub">${tg}</div>${a.recent.length ? '<button class="linkbtn" data-clear style="font-size:12.5px">Limpar tudo</button>' : ""}</div>` + ackNote + (a.recent.length
-    ? `<ul class="events">${a.recent.map((e, i) => `<li><span aria-hidden="true">${icon(e)}</span><span>${esc(e.title)}${e.event === "fired" || e.event === "action" ? `<div class="x">${esc(e.detail)}</div>` : ""}</span><span class="d">${fmtTime(e.ts, "", true)}</span>
-       <button class="close" data-del="${i}" title="Apagar do histórico" aria-label="Apagar ${esc(e.title)} do histórico">×</button></li>`).join("")}</ul>`
-    : '<div class="muted" style="margin-top:10px">Nenhum alerta no histórico.</div>');
+  // Avisos no topo, só quando há algum: 🔴 alerta e ℹ️ informação. O × fecha o aviso (volta se resolver e acontecer de novo).
+  const banner = document.getElementById("alert-banner");
+  const shown = a ? a.active.filter(x => !x.acked).sort((x, y) => (x.kind === "alert" ? 0 : 1) - (y.kind === "alert" ? 0 : 1)) : [];
+  banner.hidden = !shown.length;
+  banner.classList.toggle("info", shown.length > 0 && shown.every(x => x.kind !== "alert"));
+  banner.innerHTML = shown.map(x => `<div class="al ${x.kind === "alert" ? "bad" : "info"}">
+    <span class="al-ic" aria-hidden="true">${x.kind === "alert" ? "🔴" : "ℹ️"}</span>
+    <span class="al-t"><strong>${esc(x.title)}.</strong> ${esc(x.detail)} <span class="muted">Desde ${fmtTime(x.since, "", true)}.</span></span>
+    <button class="close" data-ack="${esc(x.key)}" title="Apagar este aviso" aria-label="Apagar o aviso ${esc(x.title)}">×</button></div>`).join("");
 }
 
-let lastOk = 0, hiddenIds = new Set(), alertState = null;
+let lastOk = 0, hiddenIds = new Set();
 
 async function act(url, body) {        // ações do painel (fechar card / alerta)
   try {
@@ -964,12 +908,7 @@ document.addEventListener("click", ev => {
   if (b.dataset.ctl) openControl(b.dataset.ctl);
   else if (b.dataset.hide) act(`/api/miners/${encodeURIComponent(b.dataset.hide)}/hide`);
   else if (b.hasAttribute("data-showall")) Promise.all([...hiddenIds].map(id => fetch(`/api/miners/${encodeURIComponent(id)}/show`, { method: "POST", headers: { "X-Minerador": "1" } }))).then(refresh);
-  else if (b.dataset.ack) act("/api/alerts/ack", { key: b.dataset.ack });
-  else if (b.hasAttribute("data-unackall")) act("/api/alerts/ack", { undo: true });
-  else if (b.dataset.del && alertState) {
-    const e = alertState.recent[+b.dataset.del];
-    if (e) act("/api/alerts/events/delete", { ts: e.ts, key: e.key, event: e.event });
-  } else if (b.hasAttribute("data-clear") && confirm("Apagar todo o histórico de alertas?")) act("/api/alerts/events/clear");
+  else if (b.dataset.ack) { b.closest(".al")?.remove(); act("/api/alerts/ack", { key: b.dataset.ack }); }
 });
 // ------------------------------------------------------------------ controle remoto (Fase 4)
 let ctlMiner = null, ctlOpts = null, ctlSnap = [];
@@ -1139,7 +1078,7 @@ function drawChart() {
   if (!hist) return;
   const series = chartSeries(hist);
   const W = Math.max(280, el.clientWidth), narrow = W < 560;
-  const H = narrow ? 236 : 276, m = { t: 26, r: narrow ? 8 : 132, b: 24, l: 44 };
+  const H = narrow ? 210 : 240, m = { t: 26, r: narrow ? 8 : 132, b: 24, l: 44 };
   const iw = W - m.l - m.r, ih = H - m.t - m.b;
   const x0 = hist.since, x1 = hist.until;
   const yMax = niceMax(Math.max(0, ...series.flatMap(s => s.points.map(p => p[1]))));
@@ -1371,7 +1310,7 @@ async function loadWeather() {
   }
 }
 // ------------------------------------------------------------------ modo leve
-// Interruptor no topo: para as animações (cubos, globo, céu, ícones, brilho do Goggles) e mantém os dados ao vivo.
+// Interruptor no topo: para as animações (cubos, globo, céu, ícones) e mantém os dados ao vivo.
 // Fica guardado por aparelho (localStorage).
 let leve = false;
 try { leve = localStorage.getItem("minerador.leve") === "1"; } catch (e) {}
@@ -1726,32 +1665,8 @@ function neoCenterInit(ch) {
   update();
 }
 // ------------------------------------------------------------------ mempool ao vivo (direto do mempool.space, como na página deles)
-// websocket: mempoolInfo (taxa mínima, memória, nº de transações) + transações do próximo bloco projetado (Goggles).
-// REST: /api/v1/statistics/2h para o gráfico de transações recebidas (vB/s).
-const MP_COLORS = ["557d00", "5d7d01", "637d02", "6d7d04", "757d05", "7d7d06", "867d08", "8c7d09", "957d0b", "9b7d0c", "a67d0e", "aa7d0f",
-  "b27d10", "bb7d11", "bf7d12", "bf7815", "bf7319", "be6c1e", "be6820", "bd6125", "bd5c28", "bc552d", "bc4f30", "bc4a34", "bb4339", "bb3d3c",
-  "bb373f", "ba3243", "b92b48", "b9254b", "b8214d", "b71d4f", "b61951", "b41453", "b30e55", "b10857", "b00259", "ae005b"].map(h => "#" + h);
-const MP_LEVELS = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 175, 200, 250, 300, 350, 400, 500, 600, 700,
-  800, 900, 1000, 1200, 1400, 1600, 1800, 2000];
-const MP_RGB = MP_COLORS.map(c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)));
-function mpColor(rate) {                       // escala do mempool.space, interpolada entre os degraus
-  const r = Math.max(1, rate), i = MP_LEVELS.findIndex(l => r < l) - 1;
-  if (i < 0) return MP_COLORS[MP_COLORS.length - 1];
-  const f = (r - MP_LEVELS[i]) / (MP_LEVELS[i + 1] - MP_LEVELS[i]), a = MP_RGB[i], b = MP_RGB[i + 1] || a;
-  return `rgb(${a.map((v, k) => Math.round(v + (b[k] - v) * f)).join(",")})`;
-}
-// bits de flags do mempool.space (TransactionFlags): dados = op_return/fake_pubkey/inscription/fake_scripthash/annex
-const MP_FILTERS = {
-  todos: { name: "Todos", test: () => true },
-  consolidacao: { name: "Consolidação", test: f => Math.floor(f / 2 ** 33) % 2 === 1 },
-  coinjoin: { name: "Coinjoin", test: f => Math.floor(f / 2 ** 32) % 2 === 1 },
-  dados: { name: "Dados", test: f => Math.floor(f / 2 ** 24) % 32 !== 0 },
-};
-const MP_FLAG_NAMES = [[24, "OP_RETURN"], [25, "pubkey falsa"], [26, "inscrição"], [27, "scripthash falso"], [28, "annex"], [32, "coinjoin"],
-  [33, "consolidação"], [34, "pagamento em lote"], [16, "CPFP"], [18, "substituição (RBF)"]];
-const MP_GRID = 75;                                   // 75 × 75 quadradinhos ≈ 1 MvB (um bloco)
-let mpWs = null, mpRetry = 0, mpRetryTimer = null, mpStarted = false, mpInfo = null, mpFilter = "todos";
-let mpTxs = new Map(), mpCells = null, mpPlaced = [], mpDrawTimer = null, mpFading = false, mpStats = null;
+// websocket: mempoolInfo (taxa mínima, memória, nº de transações).
+let mpWs = null, mpRetry = 0, mpRetryTimer = null, mpStarted = false, mpInfo = null;
 
 function mpWsUrl() { return mempoolBase.replace(/^http/, "ws").replace(/\/+$/, "") + "/api/v1/ws"; }
 function mpConnect() {
@@ -1759,34 +1674,13 @@ function mpConnect() {
   clearTimeout(mpRetryTimer);
   let ws;
   try { ws = mpWs = new WebSocket(mpWsUrl()); } catch (e) { mpWs = null; return; }
-  ws.onopen = () => {
-    mpRetry = 0;
-    ws.send(JSON.stringify({ action: "want", data: ["stats", "mempool-blocks"] }));
-    ws.send(JSON.stringify({ "track-mempool-block": 0 }));
-  };
-  ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (err) { return; } mpMessage(m); };
+  ws.onopen = () => { mpRetry = 0; ws.send(JSON.stringify({ action: "want", data: ["stats"] })); };
+  ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (err) { return; } if (m.mempoolInfo) { mpInfo = m.mempoolInfo; mpRenderInfo(); } };
   ws.onclose = () => {
     if (mpWs !== ws) return;
     mpWs = null;
     if (!document.hidden) mpRetryTimer = setTimeout(mpConnect, Math.min(30000, 2000 * 2 ** mpRetry++));
-    if (!mpTxs.size) document.getElementById("mp-wait").textContent = "Sem conexão com o mempool. Tentando de novo…";
   };
-}
-function mpMessage(m) {
-  if (m.mempoolInfo) { mpInfo = m.mempoolInfo; mpRenderInfo(); }
-  const pb = m["projected-block-transactions"];
-  if (pb && pb.index === 0) {
-    const now = performance.now();
-    if (pb.blockTransactions) {
-      mpTxs = new Map(pb.blockTransactions.map(t => [t[0], { id: t[0], fee: t[1], vsize: t[2], rate: t[4], flags: t[5] || 0, born: 0 }]));
-    } else if (pb.delta) {
-      for (const id of pb.delta.removed || []) mpTxs.delete(id);
-      for (const t of pb.delta.added || []) mpTxs.set(t[0], { id: t[0], fee: t[1], vsize: t[2], rate: t[4], flags: t[5] || 0, born: now });
-      for (const c of pb.delta.changed || []) { const t = mpTxs.get(c[0]); if (t) { t.rate = c[1]; t.flags = c[2] ?? t.flags; } }
-    }
-    if (pb.blockTransactions) { clearTimeout(mpDrawTimer); mpDrawTimer = null; mpLayout(); mpDraw(); }
-    else if (!mpDrawTimer) mpDrawTimer = setTimeout(() => { mpDrawTimer = null; mpLayout(); mpDraw(); }, leve ? 5000 : 500);   // 2×/s; no modo leve, a cada 5 s
-  }
 }
 function mpRenderInfo() {
   const i = mpInfo;
@@ -1802,179 +1696,13 @@ function mpRenderInfo() {
     mem.setAttribute("aria-valuenow", Math.round(pct));
   }
 }
-// quadrados com lado ∝ √vbytes, empilhados de baixo para cima por taxa (maior taxa embaixo), como no mempool.space
-function mpLayout() {
-  const G = MP_GRID, unit = 1e6 / (G * G);
-  const occ = new Uint8Array(G * G), cells = new Int32Array(G * G).fill(-1);
-  const txs = [...mpTxs.values()].sort((a, b) => b.rate - a.rate);
-  const placed = [];
-  let first = 0;
-  const fits = (x, y, s) => {
-    if (x + s > G || y + s > G) return false;
-    for (let dy = 0; dy < s; dy++) for (let dx = 0; dx < s; dx++) if (occ[(y + dy) * G + x + dx]) return false;
-    return true;
-  };
-  for (const t of txs) {
-    if (first >= G * G) break;
-    let s = Math.max(1, Math.min(G, Math.round(Math.sqrt(t.vsize / unit))));
-    let pos = -1;
-    for (; s >= 1 && pos < 0; s--) {
-      for (let idx = first; idx < G * G; idx++) {
-        if (!occ[idx] && fits(idx % G, Math.floor(idx / G), s)) { pos = idx; break; }
-      }
-      if (pos >= 0) break;
-    }
-    if (pos < 0) continue;
-    const x = pos % G, y = Math.floor(pos / G), k = placed.length;
-    for (let dy = 0; dy < s; dy++) for (let dx = 0; dx < s; dx++) { occ[(y + dy) * G + x + dx] = 1; cells[(y + dy) * G + x + dx] = k; }
-    placed.push({ t, x, y, s });
-    while (first < G * G && occ[first]) first++;
-  }
-  mpPlaced = placed; mpCells = cells;
-}
-function mpDraw() {
-  const cv = document.getElementById("mp-canvas"), box = document.getElementById("mp-box");
-  const W = box.clientWidth;
-  if (!W) return;
-  const dpr = window.devicePixelRatio || 1;
-  if (cv.width !== Math.round(W * dpr)) { cv.width = cv.height = Math.round(W * dpr); }
-  const ctx = cv.getContext("2d");
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, W, W);
-  const cell = W / MP_GRID, gap = Math.max(.6, cell * .14);
-  const test = MP_FILTERS[mpFilter].test, now = performance.now();
-  let fading = false;
-  for (const p of mpPlaced) {
-    const hit = test(p.t.flags);
-    let col = mpColor(p.t.rate);
-    if (!hit) col = "#2a2d3e";
-    const age = p.t.born && !leve ? now - p.t.born : 1e9;      // modo leve: sem o brilho das novas
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = col;
-    const px = p.x * cell + gap / 2, py = (MP_GRID - p.y - p.s) * cell + gap / 2, sz = p.s * cell - gap;
-    ctx.fillRect(px, py, sz, sz);
-    if (age < 1600) {                                  // transação nova: acende e apaga
-      fading = true;
-      ctx.globalAlpha = .75 * (1 - age / 1600);
-      ctx.fillStyle = "#eaffc8";
-      ctx.fillRect(px, py, sz, sz);
-    }
-    if (hit && mpFilter !== "todos") {                 // destaque do filtro, como nos "óculos" do mempool
-      ctx.globalAlpha = .35; ctx.fillStyle = "#ffffff"; ctx.fillRect(px, py, sz, sz);
-    }
-  }
-  ctx.globalAlpha = 1;
-  document.getElementById("mp-wait").textContent = mpPlaced.length ? "" : "Conectando ao mempool…";
-  const n = mpFilter === "todos" ? null : mpPlaced.filter(p => test(p.t.flags)).length;
-  document.getElementById("mp-gnote").textContent = `Próximo bloco projetado · ${H(mpTxs.size)} transações`
-    + (n != null ? ` · ${H(n)} de ${MP_FILTERS[mpFilter].name.toLowerCase()}` : "") + " · tamanho = vbytes · cor = taxa";
-  if (fading && !mpFading && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    mpFading = true;
-    requestAnimationFrame(() => { mpFading = false; mpDraw(); });
-  }
-}
-function mpTipAt(ev) {
-  const cv = document.getElementById("mp-canvas"), tip = document.getElementById("mp-tip");
-  const r = cv.getBoundingClientRect();
-  if (!mpCells || !r.width) return null;
-  const gx = Math.floor((ev.clientX - r.left) / r.width * MP_GRID), gyTop = Math.floor((ev.clientY - r.top) / r.height * MP_GRID);
-  const gy = MP_GRID - 1 - gyTop;
-  if (gx < 0 || gy < 0 || gx >= MP_GRID || gy >= MP_GRID) return null;
-  const k = mpCells[gy * MP_GRID + gx];
-  return k >= 0 ? mpPlaced[k].t : null;
-}
-function mpInitCanvas() {
-  const cv = document.getElementById("mp-canvas"), tip = document.getElementById("mp-tip"), box = document.getElementById("mp-box");
-  cv.addEventListener("mousemove", ev => {
-    const t = mpTipAt(ev);
-    if (!t) { tip.style.display = "none"; cv.style.cursor = "crosshair"; return; }
-    const flags = MP_FLAG_NAMES.filter(([b]) => Math.floor(t.flags / 2 ** b) % 2 === 1).map(([, n]) => n);
-    tip.innerHTML = `<b>${nf(t.rate, t.rate < 10 ? 2 : 1)} sat/vB</b><br>${H(Math.round(t.vsize))} vB · taxa ${H(t.fee)} sats`
-      + (flags.length ? `<br>${esc(flags.join(" · "))}` : "") + `<br><span style="opacity:.6">${esc(t.id.slice(0, 10))}… (clique para abrir)</span>`;
-    tip.style.display = "block";
-    const br = box.getBoundingClientRect();
-    let x = ev.clientX - br.left + 14, y = ev.clientY - br.top + 14;
-    if (x + tip.offsetWidth > br.width) x = ev.clientX - br.left - tip.offsetWidth - 10;
-    if (y + tip.offsetHeight > br.height) y = ev.clientY - br.top - tip.offsetHeight - 10;
-    tip.style.left = x + "px"; tip.style.top = y + "px";
-    cv.style.cursor = "pointer";
-  });
-  cv.addEventListener("mouseleave", () => { tip.style.display = "none"; });
-  cv.addEventListener("click", ev => { const t = mpTipAt(ev); if (t) window.open(`${mempoolBase}/tx/${t.id}`, "_blank", "noopener"); });
-  document.querySelectorAll("#mp-filters button").forEach(b => b.addEventListener("click", () => {
-    mpFilter = b.dataset.f;
-    document.querySelectorAll("#mp-filters button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
-    document.getElementById("mp-fname").textContent = MP_FILTERS[mpFilter].name;
-    mpDraw();
-  }));
-  new ResizeObserver(() => { mpDraw(); mpChart(); }).observe(box.parentElement.parentElement);
-}
-// gráfico "Transações Recebidas": vB/s; verde abaixo da capacidade da rede, amarelo → vermelho acima
-const MP_LIMIT = 1667;
-const MP_BANDS = [[MP_LIMIT, "#7cb342"], [2000, "#fdd835"], [2500, "#ffb300"], [3000, "#fb8c00"], [3500, "#f4511e"], [Infinity, "#d81b60"]];
-async function mpLoadStats() {
-  if (document.hidden) return;
-  try {
-    const r = await fetch(`${mempoolBase.replace(/\/+$/, "")}/api/v1/statistics/2h`, { cache: "no-store" });
-    if (!r.ok) throw new Error(r.status);
-    mpStats = (await r.json()).filter(p => p.added && p.vbytes_per_second != null).sort((a, b) => a.added - b.added);
-  } catch (e) { if (!mpStats) mpStats = []; }
-  mpChart();
-}
-function mpChart() {
-  const el = document.getElementById("mp-chart");
-  const W = el.clientWidth, Ht = el.clientHeight;
-  if (!W || !mpStats) return;
-  if (!mpStats.length) { el.innerHTML = '<div class="mp-wait">Sem dados do mempool agora.</div>'; return; }
-  const m = { l: 46, r: 8, t: 10, b: 30 };
-  const iw = W - m.l - m.r, ih = Ht - m.t - m.b;
-  const vmax = Math.max(MP_LIMIT * 1.3, ...mpStats.map(p => p.vbytes_per_second));
-  const step = vmax > 14000 ? 5000 : vmax > 7000 ? 2000 : 1000;
-  const ymax = Math.ceil(vmax / step) * step;
-  const t0 = mpStats[0].added, t1 = mpStats[mpStats.length - 1].added;
-  const X = t => m.l + (t1 > t0 ? (t - t0) / (t1 - t0) : 1) * iw, Y = v => m.t + ih - v / ymax * ih;
-  let g = "";
-  for (let v = 0; v <= ymax; v += step) {
-    g += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="${v ? "#3a3f5c" : "#5a6080"}" stroke-dasharray="${v ? "1 3" : ""}"/>`
-      + `<text class="ax" x="${m.l - 8}" y="${Y(v) + 4}" text-anchor="end">${v}</text>`;
-  }
-  const q = 15 * 60;
-  for (let t = Math.ceil(t0 / q) * q; t <= t1; t += q) {
-    const d = new Date(t * 1000), hr = d.getMinutes() === 0;
-    if (X(t) < m.l + 20 || X(t) > W - m.r - 16) continue;
-    g += `<line x1="${X(t)}" x2="${X(t)}" y1="${m.t + ih}" y2="${m.t + ih + 5}" stroke="#5a6080"/>`
-      + `<text class="ax${hr ? " hr" : ""}" x="${X(t)}" y="${Ht - 6}" text-anchor="middle">${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</text>`;
-  }
-  // gradiente em degraus pelo valor (eixo y), como no mempool.space
-  let stops = "", prev = 0;
-  for (const [lim, col] of MP_BANDS) {
-    const a = Math.min(1, prev / ymax), b = Math.min(1, lim / ymax);
-    stops += `<stop offset="${a}" stop-color="${col}"/><stop offset="${b}" stop-color="${col}"/>`;
-    prev = lim;
-    if (lim >= ymax) break;
-  }
-  const pts = mpStats.map(p => `${X(p.added).toFixed(1)},${Y(p.vbytes_per_second).toFixed(1)}`).join(" ");
-  const last = mpStats[mpStats.length - 1];
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${Ht}" aria-hidden="true">
-    <defs><linearGradient id="mp-grad" gradientUnits="userSpaceOnUse" x1="0" y1="${Y(0)}" x2="0" y2="${Y(ymax)}">${stops}</linearGradient></defs>
-    ${g}
-    <polyline points="${pts}" fill="none" stroke="url(#mp-grad)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-    <line x1="${m.l}" x2="${W - m.r}" y1="${Y(MP_LIMIT)}" y2="${Y(MP_LIMIT)}" stroke="#fff" stroke-width="2" stroke-dasharray="9 6"/>
-    <circle cx="${X(last.added)}" cy="${Y(last.vbytes_per_second)}" r="4" fill="${MP_BANDS.find(([l]) => last.vbytes_per_second < l)[1]}"/>
-  </svg>`;
-  el.setAttribute("aria-label", `Transações recebidas nas últimas 2 horas; agora ${H(last.vbytes_per_second)} vB/s (capacidade da rede ≈ ${H(MP_LIMIT)} vB/s)`);
-}
 function mpStart() {
   if (mpStarted) return;
   mpStarted = true;
-  document.getElementById("mp-link").href = `${mempoolBase}/mempool-block/0`;
-  mpInitCanvas();
   mpConnect();
-  mpLoadStats();
-  setInterval(mpLoadStats, 60000);
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) { const ws = mpWs; mpWs = null; ws?.close(); clearTimeout(mpRetryTimer); }   // aba escondida: desliga o ao vivo
-    else { mpConnect(); mpLoadStats(); }
+    else mpConnect();
   });
 }
 // ------------------------------------------------------------------ festa: bloco achado por máquina ou aluguel seu

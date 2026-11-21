@@ -37,7 +37,7 @@ Fluxo de dados:
   Cada `[pools.*]` tem um `type`: `defisurfers`, `parasite` ou `hashcommander` (BCH). Máquinas são ligadas às pools por `pool` + `worker`; o worker é deduzido do usuário stratum `endereco.worker` quando omitido.
 - **`sources/`**: um módulo por fonte. Cada um separa `parse(...)` (puro, testado com JSON fixo) de `fetch(...)` (I/O). Todos devolvem os modelos de `models.py` (`LocalReading`, `PoolReading`/`PoolWorker`). `parse_number` tolera números em string ("2,02 G" etc.).
 - **`collector.py`** (`Collector`) consulta as máquinas a cada `intervals.local` e as pools a cada `intervals.pools`. Ele grava no SQLite (`db.py`) e monta o `snapshot()` servido em `/api/status`, onde o status de cada máquina combina a leitura local com o worker na pool. Detalhe importante: ele guarda a **última leitura boa** de cada pool (`pools_last_ok`, com tolerância `pool_grace_s`) para que uma falha passageira da API não gere alarme falso.
-- **`alerts.py`**: `conditions(snapshot)` → `AlertEngine`. O engine aplica tempos de espera (`[alerts]`), guarda o histórico no banco e envia pelo Telegram.
+- **`alerts.py`**: `conditions(snapshot)` → `AlertEngine`. O engine aplica tempos de espera (`[alerts]`), guarda o histórico no banco e envia pelo Telegram. No painel **não há lista/histórico de alertas** (removida a pedido do usuário): os ativos (`alert` 🔴 e `info` ℹ️) aparecem só no aviso do topo, cada um com × que chama `/api/alerts/ack`.
 - **`finance.py`**: hashprice, dificuldade e preço vêm de mempool.space (`Market`). Calcula:
   - `compute_own`: receita esperada × energia.
   - `compute_rental`: custo do aluguel × valor esperado / chance de bloco solo.
@@ -46,15 +46,13 @@ Fluxo de dados:
 
 Todos os endpoints `POST` exigem o cabeçalho `X-Minerador: 1`, que funciona como proteção CSRF via CORS. O front-end e o app de barra de menu já o enviam.
 
-**Front-end:** `minerador/static/index.html` é um arquivo único (HTML + CSS + JS puro, sem framework, sem build). As cores são tokens CSS em `:root`, redefinidos em `prefers-color-scheme: dark`; as fontes Barlow são servidas localmente de `static/fonts/`. O painel faz polling de `/api/status`, `/api/history` e `/api/blocks` com `setInterval`. Os blocos são desenhados como cubos 3D neon em CSS: os que estão na fila ficam à esquerda e os minerados à direita. A variável `--t` mantém a fase das animações quando a lista é redesenhada. Logos das pools vêm de `{mempool}/resources/mining-pools/{slug}.svg`. Exceções: defisurfers usa ⛏️; a Hash Commander é carregada do site dela e **não** é copiada para o repo, porque o arquivo proíbe redistribuição. A seta `.neo-center` volta a fileira para a divisória fila | minerados.
+**Front-end:** `minerador/static/index.html` é um arquivo único (HTML + CSS + JS puro, sem framework, sem build). As cores são tokens CSS em `:root`, redefinidos em `prefers-color-scheme: dark`; as fontes Barlow são servidas localmente de `static/fonts/`. O painel faz polling de `/api/status`, `/api/history` e `/api/blocks` com `setInterval`. O gráfico de hashrate é de **linhas** (uma por máquina + total da pool, média por intervalo); o usuário experimentou velas e pediu para voltar às linhas. As grades de cartões (`.grid`) usam flex-wrap com `flex: 1 1 330px` e o rack usa `auto-fit`, para não sobrar coluna vazia nem buraco entre cartões de alturas diferentes. Os blocos são desenhados como cubos 3D neon em CSS: os que estão na fila ficam à esquerda e os minerados à direita. A variável `--t` mantém a fase das animações quando a lista é redesenhada. Logos das pools vêm de `{mempool}/resources/mining-pools/{slug}.svg`. Exceções: defisurfers usa ⛏️; a Hash Commander é carregada do site dela e **não** é copiada para o repo, porque o arquivo proíbe redistribuição. A seta `.neo-center` volta a fileira para a divisória fila | minerados.
 
 **Festa:** `festaCheck` dispara fogos (canvas) para blocos `found_by_me`/`paid_me` das últimas 6 h ainda não vistos neste aparelho (localStorage `minerador.festa.vistos`). `festaPoll` consulta `view=minhas` a cada 3 min. Demonstração com `?festa=1`.
 
-Exceção a "tudo passa pelo backend": a seção **Mempool** (Goggles em canvas, taxa mínima, memória, não confirmadas e o gráfico de transações recebidas) liga o **navegador direto** ao mempool.space:
-- websocket `/api/v1/ws` com `track-mempool-block: 0`, recebendo deltas;
-- REST `/api/v1/statistics/2h`.
+Exceção a "tudo passa pelo backend": a seção **Mempool** (só taxa mínima, memória e não confirmadas; o Goggles e o gráfico de transações recebidas foram removidos a pedido do usuário) liga o **navegador direto** ao mempool.space pelo websocket `/api/v1/ws` com `want: ["stats"]` (só o `mempoolInfo`).
 
-O Python não tem cliente websocket. A base vem de `mempool_url`, e os bits de flags seguem `TransactionFlags` do mempool.
+O Python não tem cliente websocket. A base vem de `mempool_url`.
 
 O cartão **hora local e tempo**, por baixo do gráfico de hashrate, também roda só no navegador:
 - se o `config.toml` tiver `[location]` (exposto em `/api/location`), usa esse local fixo, e a hora mostrada passa a ser a do fuso dele (vem da Open-Meteo). O hosting no Porto está configurado assim;
@@ -66,7 +64,7 @@ Ambas as APIs são sem chave.
 Visual do cartão:
 - **Fundo:** a classe `sky-night|sunny|cloudy|rain|snow` vem do código WMO e de `is_day`. As camadas do céu animam só com `transform` (sem `background-position`), para não forçar repintura.
 - **Globo:** WebGL num canvas fora da tela, com as texturas `static/img/terra-*.jpg`, composto num canvas 2D. A ordem de desenho é metade de trás do anel → globo → metade da frente. O sol percorre o anel e serve de direção da luz; o ponto verde marca o local.
-- **Modo leve:** interruptor no topo, guardado em localStorage `minerador.leve`. Põe a classe `html.leve`, que zera as animações CSS de `.neo`/`.wx` e tira os brilhos externos. Nesse modo o globo desenha um quadro só (`globeKick` redesenha quando algo muda) e o Goggles redesenha a cada 5 s, sem o brilho das transações novas. Toda animação nova deve respeitar `leve`.
+- **Modo leve:** interruptor no topo, guardado em localStorage `minerador.leve`. Põe a classe `html.leve`, que zera as animações CSS de `.neo`/`.wx` e tira os brilhos externos. Nesse modo o globo desenha um quadro só (`globeKick` redesenha quando algo muda). Toda animação nova deve respeitar `leve`.
 - **Desempenho:** a máquina do usuário fica sem memória com facilidade. Mantenha as animações baratas e parar quando estiverem fora da tela. O middleware em `app.py` força `Cache-Control: no-cache` em tudo que não é `/api/`, porque o Safari mostrava ícones antigos.
 
 **Mac:** `macos/PainelBarra.swift` é um app `MenuBarExtra` que consome a mesma API (padrão `http://127.0.0.1:8080`). Duas armadilhas conhecidas:

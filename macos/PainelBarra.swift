@@ -396,20 +396,25 @@ struct MinerRow: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
-            Circle().fill(statusColor(miner.status)).frame(width: 9, height: 9)
-                .shadow(color: statusColor(miner.status), radius: 4)
+            Circle().fill(statusColor(miner.status)).frame(width: 7, height: 7)
+                .shadow(color: statusColor(miner.status), radius: 3)
             VStack(alignment: .leading, spacing: 1) {
-                Text(miner.name).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white)
+                Text(miner.name).font(.system(size: 12, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
                     .shadow(color: .black, radius: 2).shadow(color: .black, radius: 3)
-                Text(subtitle).font(.system(size: 11, design: .monospaced)).foregroundStyle(Theme.greenDim).lineLimit(2)
+                Text(subtitle).font(.system(size: 10, design: .monospaced)).foregroundStyle(Theme.greenDim).lineLimit(1)
                     .shadow(color: .black, radius: 2).shadow(color: .black, radius: 3)
             }
             Spacer(minLength: 6)
-            Text(Fmt.hashrate(hashrate)).font(.system(size: 13, weight: .semibold, design: .monospaced))
+            Text(Fmt.hashrate(hashrate)).font(.system(size: 12, weight: .semibold, design: .monospaced))
                 .foregroundStyle(Theme.green).shadow(color: .black, radius: 2).shadow(color: .black, radius: 3)
-            if miner.control == true { controlMenu }
+                .frame(width: 92, alignment: .trailing)
+            // mesmo espaço com ou sem botão de controle, para os números ficarem na mesma coluna
+            Group {
+                if miner.control == true { controlMenu } else { Color.clear }
+            }
+            .frame(width: 16)
         }
-        .padding(.vertical, 3)
+        .padding(.vertical, 2)
     }
 
     @ViewBuilder var controlMenu: some View {
@@ -437,7 +442,7 @@ struct MinerRow: View {
                 Text("Consultando a máquina…")
             }
         } label: {
-            Image(systemName: "slider.horizontal.3")
+            Image(systemName: "slider.horizontal.3").imageScale(.small)
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
@@ -487,7 +492,7 @@ struct ContentView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             header
             if let err = store.error {
                 Label(err, systemImage: "bolt.horizontal.circle").foregroundStyle(.red).font(.system(size: 12))
@@ -509,8 +514,8 @@ struct ContentView: View {
             if showSettings { settings }
             footer
         }
-        .padding(14)
-        .frame(width: 360)
+        .padding(12)
+        .frame(width: 320)
         .background(MatrixBackground())
         .overlay(RoundedRectangle(cornerRadius: 1).stroke(Theme.green.opacity(0.25), lineWidth: 1))
         .environment(\.colorScheme, .dark)
@@ -523,8 +528,8 @@ struct ContentView: View {
 
     var header: some View {
         HStack {
-            Text("₿ PAINEL DE CONTROLE").font(.system(size: 13, weight: .bold, design: .monospaced))
-                .tracking(1.5).foregroundStyle(Theme.green).shadow(color: Theme.green.opacity(0.8), radius: 6)
+            Text("₿ PAINEL DE CONTROLE").font(.system(size: 12, weight: .bold, design: .monospaced))
+                .tracking(1.2).foregroundStyle(Theme.green).shadow(color: Theme.green.opacity(0.8), radius: 6)
             Spacer()
             if store.busy { ProgressView().controlSize(.small) }
             Text(Fmt.ago(store.updated)).font(.system(size: 10, design: .monospaced)).foregroundStyle(Theme.greenDim)
@@ -532,11 +537,9 @@ struct ContentView: View {
     }
 
     func totals(_ snap: Snapshot) -> some View {
-        HStack(alignment: .top) {
-            stat("Hashrate total", Fmt.hashrate(snap.totals.hashrate_ths))
-            Spacer()
-            stat("Máquinas ativas", "\(snap.totals.online) de \(snap.totals.total)")
-            Spacer()
+        HStack(alignment: .top, spacing: 6) {
+            stat("Hashrate", Fmt.hashrate(snap.totals.hashrate_ths))
+            stat("Ativas", "\(snap.totals.online) de \(snap.totals.total)")
             if let p = snap.totals.finance?.profit_eur_day {
                 stat("Resultado/dia", Fmt.euro(p), color: p < 0 ? Color(red: 1, green: 0.42, blue: 0.4) : Theme.green)
             }
@@ -546,9 +549,11 @@ struct ContentView: View {
     func stat(_ k: String, _ v: String, color: Color = .white) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Theme.label(k)
-            Text(v).font(.system(size: 17, weight: .bold, design: .monospaced)).foregroundStyle(color)
+            Text(v).font(.system(size: 14, weight: .bold, design: .monospaced)).foregroundStyle(color)
+                .lineLimit(1).minimumScaleFactor(0.8)
                 .shadow(color: .black, radius: 2).shadow(color: .black, radius: 3).shadow(color: color.opacity(0.45), radius: 6)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     var alerts: some View {
@@ -605,6 +610,8 @@ struct ContentView: View {
             }.help("Atualizar agora")
             Button("Sair") { NSApp.terminate(nil) }
         }
+        .controlSize(.small)
+        .imageScale(.small)
     }
 }
 
