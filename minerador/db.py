@@ -68,6 +68,12 @@ CREATE TABLE IF NOT EXISTS rental_results (
     data TEXT NOT NULL,
     PRIMARY KEY (miner_id, start)
 );
+-- recorde de share (maior dificuldade) de cada máquina e quando apareceu; não entra na limpeza
+CREATE TABLE IF NOT EXISTS best_shares (
+    miner_id TEXT PRIMARY KEY,
+    value REAL NOT NULL,
+    ts REAL NOT NULL
+);
 """
 
 
@@ -205,6 +211,40 @@ class Database:
             rows = self._conn.execute("SELECT data FROM rental_results ORDER BY start DESC LIMIT ?", (limit,))
             # "ignored": aluguel que o usuário decidiu deixar fora da lista (a linha só impede regravar)
             return [d for d in (json.loads(r[0]) for r in rows) if not d.get("ignored")]
+
+    # ------------------------------------------------------------------ recorde de share
+    def best_shares(self) -> dict[str, tuple[float, float]]:
+        """id da máquina -> (dificuldade, quando apareceu)."""
+        with self._lock:
+            return {r[0]: (r[1], r[2]) for r in self._conn.execute("SELECT miner_id, value, ts FROM best_shares")}
+
+    def save_best_share(self, miner_id: str, value: float, ts: float) -> None:
+        with self._lock:
+            self._conn.execute("INSERT OR REPLACE INTO best_shares VALUES (?, ?, ?)", (miner_id, value, ts))
+            self._conn.commit()
+
+    def best_share_from_history(self, miner_id: str | None, pool_id: str | None,
+                                worker: str | None) -> tuple[float, float] | None:
+        """Maior dificuldade já gravada nas leituras guardadas e o 1º momento em que apareceu.
+
+        Usado uma vez por máquina, para o recorde não nascer com a data de hoje.
+        """
+        rows: list = []
+        with self._lock:
+            if miner_id:
+                rows += self._conn.execute(
+                    "SELECT ts, json_extract(data, '$.best_diff') FROM miner_readings "
+                    "WHERE miner_id = ? AND online = 1", (miner_id,)).fetchall()
+            if pool_id and worker:
+                rows += self._conn.execute(
+                    "SELECT p.ts, json_extract(w.value, '$.best_diff') FROM pool_readings p, "
+                    "json_each(p.data, '$.workers') w WHERE p.pool_id = ? AND p.ok = 1 "
+                    "AND json_extract(w.value, '$.name') = ?", (pool_id, worker)).fetchall()
+        best = None
+        for ts, v in sorted(rows):
+            if v is not None and (best is None or v > best[0]):
+                best = (v, ts)
+        return best
 
     # ------------------------------------------------------------------ histórico
     def _bucketed(self, sql: str, args: tuple, bucket_s: int) -> list[list[float]]:

@@ -926,6 +926,8 @@ function sparkSvg(id) {                // hashrate da máquina no período do gr
   return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="--c:${SPARK[i % SPARK.length]}" role="img" aria-label="Hashrate de ${esc(s.name)} no período (${RANGE_TXT[hist.range]})"><line class="b" x1="0" x2="${W}" y1="${H - .5}" y2="${H - .5}"/><path class="a" d="${area}"/><path class="l" d="${line}"/></svg>`;
 }
 
+const bestShare = b => b ? `<dt>Recorde de share</dt><dd>${compact(b.value)} <small>em ${new Date(b.ts * 1000).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</small></dd>` : "";
+
 function minerCard(m) {
   const L = m.local, P = m.pool_worker;
   const reasons = m.reasons.length && !["online", "idle", "sleeping"].includes(m.status)
@@ -947,6 +949,7 @@ function minerCard(m) {
       <dt>Pool</dt><dd title="${esc(L.pool_url)}">${esc(L.pool_url || "—")}</dd>
       <dt>Worker</dt><dd>${esc(m.worker || "—")}</dd>
       <dt>Melhor dificuldade</dt><dd>${compact(L.best_diff ?? P?.best_diff)}</dd>
+      ${bestShare(m.best_share)}
       ${L.profile ? `<dt>Perfil de potência</dt><dd>${esc(L.profile)}</dd>` : ""}
       ${L.frequency_mhz ? `<dt>Frequência / voltagem</dt><dd>${nf(L.frequency_mhz, 0)} MHz / ${nf(L.core_voltage_mv, 0)} mV</dd>` : ""}
     </dl>`;
@@ -956,7 +959,7 @@ function minerCard(m) {
       ${m.type === "rental" ? metric("Contratado", m.limits.expected_ths ? `${nf(m.limits.expected_ths, 1)} <small>TH/s</small>` : "—") : ""}
       ${metric("Melhor dificuldade", compact(P?.best_diff))}
     </div>
-    <dl class="facts"><dt>Worker</dt><dd>${esc(m.worker)}</dd><dt>Dados vindos da pool</dt><dd>${esc(POOL_LABEL[m.pool] || m.pool)}</dd></dl>
+    <dl class="facts"><dt>Worker</dt><dd>${esc(m.worker)}</dd><dt>Dados vindos da pool</dt><dd>${esc(POOL_LABEL[m.pool] || m.pool)}</dd>${bestShare(m.best_share)}</dl>
 `;
   }
   const sub = [TYPE_LABEL[m.type], L?.model, m.coin === "BCH" ? "Bitcoin Cash" : "", P?.mode === "solo" ? "Solo" : P?.mode, L?.firmware]

@@ -62,6 +62,13 @@ class Collector:
         self.hidden: set[str] = db.hidden_miners() if db else set()   # cards fechados no painel
         self.rentals_done: list[dict] = db.rental_results() if db else []  # aluguéis terminados
         self._control_locks: dict[str, asyncio.Lock] = {}   # um comando por máquina de cada vez
+        self.best: dict[str, tuple[float, float]] = db.best_shares() if db else {}   # recorde de share
+        for m in cfg.miners if db else ():
+            if m.id not in self.best:   # 1ª vez: o recorde sai das leituras já guardadas, com a data certa
+                found = db.best_share_from_history(m.id, m.pool, m.worker)
+                if found:
+                    self.best[m.id] = found
+                    db.save_best_share(m.id, *found)
 
     @property
     def pool_grace_s(self) -> float:
@@ -112,14 +119,29 @@ class Collector:
         await asyncio.gather(*(self._safe(self._poll_miner(m), m.id)
                                for m in self.cfg.miners if m.type not in POOL_SIDE_TYPES))
         self._local_ready = True
+        await self._update_best()
 
     async def poll_pools_once(self) -> None:
         await asyncio.gather(*(self._safe(self._poll_pool(pid), pid) for pid in self.cfg.pools))
         first = not self._pools_ready
         self._pools_ready = True
+        await self._update_best()
         await self._reopen_active()
         if first:   # financeiro já na abertura do painel, sem esperar o laço de 1 min
             await self._safe(self.finance_once(), "financeiro")
+
+    async def _update_best(self) -> None:
+        """Guarda o novo recorde de share de cada máquina (o da máquina ou o da pool, o que for maior)."""
+        now = time.time()
+        for m in self.cfg.miners:
+            _, local = self.local.get(m.id, (None, None))
+            pw = self._pool_worker(m, local, self._fresh_pool(m.pool, now))
+            vals = [v for v in ((local.best_diff if local and local.online else None),
+                                pw.best_diff if pw else None) if v]
+            if vals and max(vals) > self.best.get(m.id, (0, 0))[0]:
+                self.best[m.id] = (max(vals), now)
+                if self.db:
+                    await asyncio.to_thread(self.db.save_best_share, m.id, max(vals), now)
 
     # ------------------------------------------------------------------ cards fechados
     ACTIVE = ("online", "warning")
@@ -405,6 +427,7 @@ class Collector:
                 "finance": self.own_finance.get(m.id),
                 "hidden": m.id in self.hidden,
                 "control": m.type in self.CONTROL_TYPES,
+                "best_share": dict(zip(("value", "ts"), self.best[m.id])) if m.id in self.best else None,
             })
 
         pools = []
