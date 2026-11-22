@@ -27,7 +27,7 @@
     --hair: #d0d8d3; --track: #e1e7e3; --ring: rgba(19,32,26,.12);
     --pcb: #0e3a2c; --pcb-edge: #1d5442; --silk: #e8f1ec; --silk-2: #a9c3b6; --slot: rgba(232,241,236,.06);
     --good: #0ca30c; --good-text: #006300; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
-    --led-good: #3ee07a; --led-warn: #ffc23d; --led-bad: #ff5a55;
+    --led-good: #3ee07a; --led-warn: #ffc23d; --led-bad: #ff5a55; --pcb-loss: #ff8a80;
     --accent: #2a78d6; --loss-text: #b3261e; --gold-text: #8f6508;
     --text: "Barlow", -apple-system, "Segoe UI", system-ui, sans-serif;
     --cond: "Barlow Semi Condensed", "Barlow", -apple-system, system-ui, sans-serif;
@@ -88,16 +88,23 @@
   .live.stale i { background: var(--led-bad); box-shadow: 0 0 6px var(--led-bad); }
   .live i.blink { animation: blink .6s ease-out; }
   @keyframes blink { from { opacity: .25; } to { opacity: 1; } }
-  .totals { display: flex; gap: 28px; flex-wrap: wrap; text-align: right; }
+  /* topo: primeiro a resposta em dinheiro (mês + agora), depois os números técnicos, menores */
+  .totals { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; text-align: right; }
   .totals div { min-width: 0; }
   .totals .k { font-size: 12.5px; color: var(--silk-2); }
   .totals .v { font: 600 26px/1.05 var(--cond); }
   .totals .v small { font: 500 15px var(--cond); color: var(--silk-2); margin-left: 3px; }
-  /* ganho/perda sobre a placa verde do rack: cores claras para ler no fundo escuro */
-  .totals .v.gain, .bay-money.gain { color: var(--led-good); }
-  .totals .v.loss, .bay-money.loss { color: #ff8a80; }
-  .totals .lead .v { font-size: 30px; }
+  .totals .money .v { font-size: 34px; }
   .totals .sub { font-size: 12px; line-height: 1.35; color: var(--silk-2); margin-top: 3px; }
+  .totals .now { font: 500 14px/1.4 var(--text); color: var(--silk); margin-top: 8px; }
+  .totals .now b { font-weight: 600; }
+  .totals .nb { white-space: nowrap; }      /* "aluguéis do mês −0,27 €" não se parte no meio */
+  .totals .stats { display: flex; gap: 22px; flex-wrap: wrap; justify-content: flex-end; }
+  .totals .stats .v { font-size: 18px; }
+  .totals .stats .v small { font-size: 13px; }
+  /* ganho/perda sobre a placa verde do rack: cores claras para ler no fundo escuro */
+  .totals .v.gain, .totals .now b.gain, .bay-money.gain { color: var(--led-good); }
+  .totals .v.loss, .totals .now b.loss, .bay-money.loss { color: var(--pcb-loss); }
 
   .bays { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin-top: 12px; }
   .bay { display: block; color: inherit; background: var(--slot); border-radius: 10px; padding: 10px 12px 11px; box-shadow: inset 0 0 0 1px rgba(232,241,236,.12); min-width: 0; }
@@ -578,7 +585,8 @@
   @media (max-width: 560px) {
     .hide-sm { display: none; }
     .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .totals { text-align: left; gap: 20px; }
+    .totals { text-align: left; align-items: flex-start; }
+    .totals .stats { justify-content: flex-start; gap: 18px; }
     .bays { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .bay:last-child:nth-child(odd) { grid-column: 1 / -1; }
     .bay-hash { font-size: 20px; }
@@ -939,44 +947,37 @@ function totalsHtml(t, snap) {
   const [hv, hu] = hashrate(t.hashrate_ths);
   const eff = t.power_w && t.hashrate_ths ? t.power_w / t.hashrate_ths : null;
   const box = (k, v, u) => `<div><div class="k">${k}</div><div class="v">${v}${u ? `<small>${u}</small>` : ""}</div></div>`;
-  return box("Hashrate total", hv, hu) + box("Máquinas ativas", t.online, `de ${t.total}`)
-    + (t.power_w ? box("Potência", nf(t.power_w, 0), "W") : "") + (eff ? box("Eficiência", nf(eff, 1), "J/TH") : "")
-    + monthTotal(t, snap) + ownTotal(t.finance, snap.miners) + rentalTotal(t.rentals);
+  const stats = box("Hashrate total", hv, hu) + box("Máquinas ativas", t.online, `de ${t.total}`)
+    + (t.power_w ? box("Potência", nf(t.power_w, 0), "W") : "") + (eff ? box("Eficiência", nf(eff, 1), "J/TH") : "");
+  return moneyTop(t, snap) + `<div class="stats">${stats}</div>`;
 }
 const signCls = v => v < 0 ? "loss" : v > 0 ? "gain" : "";
 const own = miners => miners.filter(m => m.finance && m.type !== "rental");
-function ownTotal(f, miners) {         // máquinas próprias, por dia; parada conta só a energia
+function nowLine(f, miners) {          // o ritmo de agora das máquinas próprias; parada conta só a energia
   if (f?.profit_eur_day == null) return "";
   const stopped = own(miners).filter(m => m.status === "offline" && m.finance.energy_eur_day != null);
   const vals = own(miners).map(m => nowProfit(m.finance, m.status)).filter(v => v != null);
-  const now = stopped.length && vals.length ? vals.reduce((a, b) => a + b, 0) : f.profit_eur_day;
-  const miss = f.missing_power.length ? `<br>sem custo de energia: ${esc(f.missing_power.join(", "))}` : "";
-  const sub = stopped.length
-    ? `${esc(stopped.map(m => m.name).join(", "))} ${stopped.length === 1 ? "parada" : "paradas"}: só energia<br>média das últimas 24 h: ${eurSigned(f.profit_eur_day)}/dia`
-    : `receita ${eur(f.revenue_eur_day)} − energia ${eur(f.energy_eur_day)}`;
-  return `<div><div class="k">Máquinas próprias${stopped.length ? ", agora" : ""}</div><div class="v ${signCls(now)}">${eurSigned(now)}<small>/dia</small></div>
-    <div class="sub">${sub}${miss}</div></div>`;
+  const now = vals.length ? vals.reduce((a, b) => a + b, 0) : f.profit_eur_day;
+  const why = stopped.length ? ` — ${esc(stopped.map(m => m.name).join(", "))} ${stopped.length === 1 ? "parada" : "paradas"}` : " com as máquinas próprias";
+  const miss = f.missing_power.length ? ` (sem custo de energia: ${esc(f.missing_power.join(", "))})` : "";
+  return `<div class="now">Agora ${now < 0 ? "perdendo" : "ganhando"} <b class="${signCls(now)}">${eur(Math.abs(now))}</b> por dia${why}${miss}</div>`;
 }
-function rentalTotal(r) {              // aluguéis terminados + em andamento: valor esperado − custo
-  if (!r) return "";
-  const miss = r.missing ? `+ ${r.missing} sem custo informado` : "";
-  if (!r.count) return `<div><div class="k">Aluguéis</div><div class="v">—</div><div class="sub">${miss}</div></div>`;
-  return `<div><div class="k">Aluguéis, total de ${r.count}</div><div class="v ${signCls(r.result_eur)}">${eurSigned(r.result_eur)}</div>
-    <div class="sub">valor esperado − custo${r.active ? `<br>${r.active} em andamento` : ""}${miss ? `<br>${miss}` : ""}</div></div>`;
-}
-function monthTotal(t, snap) {         // uma resposta só: o mês até hoje, máquinas (estimativa) + aluguéis do mês
+function moneyTop(t, snap) {           // uma resposta só: o mês até hoje (máquinas, estimativa + aluguéis do mês) e o agora
   const f = t.finance, d = new Date(), days = d.getDate();
   const inMonth = ts => { const x = new Date(ts * 1000); return x.getMonth() === d.getMonth() && x.getFullYear() === d.getFullYear(); };
   const rent = [...(snap.rentals_done || []).filter(x => x.end && inMonth(x.end)).map(x => x.result_eur),
     ...snap.miners.map(m => m.rental).filter(r => r?.state === "ativo" && r.result_eur != null && inMonth(r.start)).map(r => r.result_eur)]
     .filter(v => v != null);
   const ownMonth = f?.profit_eur_day != null ? f.profit_eur_day * days : null;
-  if (ownMonth == null && !rent.length) return "";
+  const now = nowLine(f, snap.miners);
+  if (ownMonth == null && !rent.length) return now ? `<div class="money">${now}</div>` : "";
   const rentMonth = rent.reduce((a, b) => a + b, 0), total = (ownMonth || 0) + rentMonth;
   const month = d.toLocaleString("pt-PT", { month: "long" });
+  const parts = [ownMonth != null ? `máquinas ≈ ${eurSigned(ownMonth)} (${days} dias × média de 24 h)` : "",
+    rent.length ? `aluguéis do mês ${eurSigned(rentMonth)}` : ""].filter(Boolean).map(x => `<span class="nb">${x}</span>`).join(" · ");
   const miss = t.rentals?.missing ? `<br>+ ${t.rentals.missing} aluguel sem custo informado` : "";
-  return `<div class="lead"><div class="k">${month[0].toUpperCase() + month.slice(1)} até hoje (estimativa)</div><div class="v ${signCls(total)}">${eurSigned(total)}</div>
-    <div class="sub">${ownMonth != null ? `máquinas ≈ ${eurSigned(ownMonth)} (${days} dias × média de 24 h)<br>` : ""}aluguéis ${eurSigned(rentMonth)}${miss}</div></div>`;
+  return `<div class="money"><div class="k">${month[0].toUpperCase() + month.slice(1)} até hoje (estimativa)</div><div class="v ${signCls(total)}">${eurSigned(total)}</div>
+    <div class="sub">${parts}${miss}</div>${now}</div>`;
 }
 function ledgerHtml(list) {            // aluguéis terminados: guardados no banco, o × do cartão não apaga
   if (!list?.length) return "";
