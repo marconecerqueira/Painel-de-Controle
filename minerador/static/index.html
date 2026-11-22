@@ -25,9 +25,9 @@
   :root {
     --page: #e7ebe8; --surface: #f6f8f6; --ink: #13201a; --ink-2: #44534c; --muted: #6a7972;
     --hair: #d0d8d3; --track: #e1e7e3; --ring: rgba(19,32,26,.12);
-    --pcb: #0e3a2c; --pcb-edge: #1d5442; --silk: #e8f1ec; --silk-2: #a9c3b6; --slot: rgba(232,241,236,.06);
+    --silk: #e8f1ec; --silk-2: #a9c3b6;
     --good: #0ca30c; --good-text: #006300; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
-    --led-good: #3ee07a; --led-warn: #ffc23d; --led-bad: #ff5a55; --pcb-loss: #ff8a80;
+    --led-good: #3ee07a; --led-warn: #ffc23d; --led-bad: #ff5a55;
     --accent: #2a78d6; --loss-text: #b3261e; --gold-text: #8f6508;
     --text: "Barlow", -apple-system, "Segoe UI", system-ui, sans-serif;
     --cond: "Barlow Semi Condensed", "Barlow", -apple-system, system-ui, sans-serif;
@@ -36,7 +36,6 @@
     :root {
       --page: #0b1110; --surface: #121a17; --ink: #e4ebe7; --ink-2: #a6b4ad; --muted: #7a8a82;
       --hair: #22302a; --track: #1d2924; --ring: rgba(228,235,231,.10);
-      --pcb: #0a2c21; --pcb-edge: #1a4536;
       --good-text: #0ca30c; --accent: #3987e5; --loss-text: #ff7b72; --gold-text: #e3b341;
     }
   }
@@ -58,7 +57,8 @@
   .num, .v, td.num { font-variant-numeric: tabular-nums; }
 
   /* ---------------- painel do rack (topo) */
-  .rack { background: var(--pcb); color: var(--silk); border-radius: 16px; padding: 14px 16px; box-shadow: inset 0 0 0 1px var(--pcb-edge); }
+  /* mesmo fundo dos outros cartões; os tons "silk" da antiga placa verde viram as cores de texto normais */
+  .rack { --silk: var(--ink); --silk-2: var(--ink-2); background: var(--surface); color: var(--ink); border-radius: 12px; padding: 16px; box-shadow: inset 0 0 0 1px var(--hair); }
   .rack-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
   h1 { font: 700 26px/1.1 var(--cond); margin: 0; letter-spacing: .01em; }
   h1.brand { line-height: 0; margin: -6px 0 2px -4px; }
@@ -66,11 +66,11 @@
   @media (max-width: 560px) { h1.brand img { height: 84px; } }
   .live { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--silk-2); margin-top: 4px; }
   .live i { width: 8px; height: 8px; border-radius: 50%; background: var(--led-good); box-shadow: 0 0 6px var(--led-good); }
-  .live.stale { color: #ffb3b0; }
+  .live.stale { color: var(--loss-text); }
   /* interruptor do modo leve */
   .leve-btn { display: inline-flex; align-items: center; gap: 7px; margin: 4px 0 0 12px; vertical-align: top; font: 500 12.5px var(--text); color: var(--silk-2);
-    background: rgba(232,241,236,.07); border: 0; box-shadow: inset 0 0 0 1px rgba(232,241,236,.2); border-radius: 999px; padding: 3px 10px 3px 4px; cursor: pointer; }
-  .leve-btn .sw { position: relative; width: 26px; height: 15px; border-radius: 999px; background: rgba(232,241,236,.22); transition: background .2s; }
+    background: transparent; border: 0; box-shadow: inset 0 0 0 1px var(--hair); border-radius: 999px; padding: 3px 10px 3px 4px; cursor: pointer; }
+  .leve-btn .sw { position: relative; width: 26px; height: 15px; border-radius: 999px; background: var(--track); transition: background .2s; }
   .leve-btn .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 11px; height: 11px; border-radius: 50%; background: var(--silk); transition: transform .2s; }
   .leve-btn[aria-pressed="true"] { color: var(--silk); box-shadow: inset 0 0 0 1px var(--led-good); }
   .leve-btn[aria-pressed="true"] .sw { background: var(--led-good); }
@@ -102,13 +102,12 @@
   .totals .stats { display: flex; gap: 22px; flex-wrap: wrap; justify-content: flex-end; }
   .totals .stats .v { font-size: 18px; }
   .totals .stats .v small { font-size: 13px; }
-  /* ganho/perda sobre a placa verde do rack: cores claras para ler no fundo escuro */
-  .totals .v.gain, .totals .now b.gain, .bay-money.gain { color: var(--led-good); }
-  .totals .v.loss, .totals .now b.loss, .bay-money.loss { color: var(--pcb-loss); }
+  .totals .v.gain, .totals .now b.gain, .bay-money.gain { color: var(--good-text); }
+  .totals .v.loss, .totals .now b.loss, .bay-money.loss { color: var(--loss-text); }
 
   .bays { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin-top: 12px; }
-  .bay { display: block; color: inherit; background: var(--slot); border-radius: 10px; padding: 10px 12px 11px; box-shadow: inset 0 0 0 1px rgba(232,241,236,.12); min-width: 0; }
-  .bay:hover { text-decoration: none; box-shadow: inset 0 0 0 1px rgba(232,241,236,.35); }
+  .bay { display: block; color: inherit; border-radius: 10px; padding: 10px 12px 11px; box-shadow: inset 0 0 0 1px var(--hair); min-width: 0; }
+  .bay:hover { text-decoration: none; box-shadow: inset 0 0 0 1px var(--muted); }
   .bay-head { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; min-width: 0; }
   .bay-head span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .led { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; background: transparent; box-shadow: inset 0 0 0 1.5px var(--silk-2); }
@@ -119,7 +118,7 @@
   .bay-hash small { font: 500 14px var(--cond); color: var(--silk-2); margin-left: 3px; }
   .bay-state { font-size: 12.5px; color: var(--silk-2); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bay-money { font: 600 13px var(--cond); color: var(--silk-2); margin-top: 3px; font-variant-numeric: tabular-nums; }
-  .bay-bar { height: 3px; border-radius: 2px; background: rgba(232,241,236,.14); margin-top: 8px; overflow: hidden; }
+  .bay-bar { height: 3px; border-radius: 2px; background: var(--track); margin-top: 8px; overflow: hidden; }
   .bay-bar span { display: block; height: 100%; background: var(--silk); }
   .bay-bar span.low { background: var(--led-warn); }
 
