@@ -2,6 +2,7 @@
   python -m minerador --config config.toml                   inicia o painel
   python -m minerador --telegram-chatid TOKEN                descobre o chat_id
   python -m minerador --config config.toml --telegram-test   envia mensagem de teste
+  python -m minerador --procurar [192.168.1.0/24]            procura mineradores na rede local
 """
 
 from __future__ import annotations
@@ -54,6 +55,36 @@ def telegram_chat_ids(token: str) -> None:
         print(f"  chat_id = \"{cid}\"   ({name})")
 
 
+def find_miners(network: str | None, config_path: str) -> None:
+    """Lista os mineradores da rede e imprime o bloco [[miners]] dos que ainda não estão no config."""
+    from . import discover
+    try:
+        net = discover.check_network(network)
+    except (ValueError, OSError) as e:
+        sys.exit(f"Rede inválida: {e}")
+    try:
+        cfg = load_config(config_path)
+        known, taken = {m.host for m in cfg.miners if m.host}, {m.id for m in cfg.miners}
+    except ConfigError:
+        known, taken = set(), set()
+    print(f"Procurando em {net} ({net.num_addresses - 2} endereços)… leva uns 30 s.")
+    found = asyncio.run(discover.scan(net))
+    if not found:
+        print("Nenhum minerador AxeOS ou LuxOS respondeu nesta rede.")
+        return
+    new = []
+    for m in found:
+        extra = " · ".join(str(x) for x in (m["model"], m["firmware"]) if x)
+        print(f"  {m['host']:<16} {m['type']:<6} {m['name']}" + (f" ({extra})" if extra else "")
+              + ("   já no config" if m["host"] in known else ""))
+        if m["host"] not in known:
+            new.append(m)
+    if new:
+        print("\nPara acompanhar, cole no config.toml. Se a máquina já estiver lá como pool_only,\n"
+              "só troque o type e ponha o host na entrada que existe, em vez de colar outra:\n")
+        print("\n".join(discover.config_snippet(m, taken) for m in new))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="minerador", description="Painel remoto de mineradores")
     parser.add_argument("--config", "-c", default="config.toml", help="caminho do config.toml")
@@ -61,10 +92,15 @@ def main() -> None:
     parser.add_argument("--port", type=int, help="sobrescreve server.port")
     parser.add_argument("--telegram-chatid", metavar="TOKEN", help="descobre o chat_id do seu bot")
     parser.add_argument("--telegram-test", action="store_true", help="envia uma mensagem de teste")
+    parser.add_argument("--procurar", nargs="?", const="", metavar="REDE",
+                        help="procura Bitaxe/AxeOS e LuxOS na rede local (ex.: 192.168.1.0/24)")
     args = parser.parse_args()
 
     if args.telegram_chatid:
         telegram_chat_ids(args.telegram_chatid)
+        return
+    if args.procurar is not None:
+        find_miners(args.procurar or None, args.config)
         return
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")

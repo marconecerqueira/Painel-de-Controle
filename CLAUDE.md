@@ -15,6 +15,7 @@ python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"   # setup (Python >= 
 .venv/bin/python tools/simulador.py &                         # finge ser LuxOS (:14028), AxeOS e pools (:18081)
 .venv/bin/python -m minerador --config config.demo.toml       # painel em http://localhost:8080 contra o simulador
 .venv/bin/python -m minerador --config config.toml --telegram-test
+.venv/bin/python -m minerador --procurar [192.168.1.0/24]     # acha AxeOS/LuxOS na rede local (só lê) e imprime o [[miners]]
 macos/build.sh                                                # compila/instala o app de barra de menu (SwiftUI)
 ```
 

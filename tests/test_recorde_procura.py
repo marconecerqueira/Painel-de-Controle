@@ -1,9 +1,10 @@
-"""Recorde de share (com data)."""
+"""Recorde de share (com data) e a procura de mineradores na rede."""
 
 import asyncio
 
 import pytest
 
+from minerador import discover
 from minerador.collector import Collector
 from minerador.db import Database
 from minerador.models import PoolReading, PoolWorker
@@ -35,3 +36,54 @@ def test_recorde_antigo_sai_do_historico_com_a_data_certa(tmp_path):
     assert col.best["nerd"] == (9e6, 2000.0)
     assert db.best_shares()["nerd"] == (9e6, 2000.0)
     db.close()
+
+
+def test_procura_reconhece_axeos_e_luxos():
+    assert discover.axeos_found("10.0.0.5", {"hostname": "bitaxe", "ASICModel": "BM1370",
+                                             "boardVersion": "601", "version": "v2.11"}) == {
+        "type": "axeos", "host": "10.0.0.5", "name": "bitaxe", "model": "BM1370 601", "firmware": "v2.11"}
+    assert discover.axeos_found("10.0.0.6", {"status": "ok"}) is None          # outro aparelho com HTTP
+    assert discover.axeos_found("10.0.0.6", ["lista"]) is None
+
+    lux = {"STATUS": [{"STATUS": "S"}], "VERSION": [{"LUXminer": "2026.10.1", "Type": "Antminer S19j XP"}]}
+    assert discover.luxos_found("10.0.0.7", lux)["type"] == "luxos"
+    assert discover.luxos_found("10.0.0.8", {"VERSION": [{"CGMiner": "4.9"}]}) is None   # não é LuxOS
+
+
+def test_procura_so_em_rede_local_pequena():
+    assert discover.check_network("192.168.1.7/24").num_addresses == 256
+    with pytest.raises(ValueError):
+        discover.check_network("8.8.8.0/24")                      # internet, não
+    with pytest.raises(ValueError):
+        discover.check_network("10.0.0.0/8")                      # grande demais
+
+
+def test_bloco_do_config_tem_id_novo():
+    taken = {"bitaxe"}
+    m = {"type": "axeos", "host": "10.0.0.5", "name": "Bitaxe"}
+    a, b = discover.config_snippet(m, taken), discover.config_snippet(m, taken)
+    assert 'id = "bitaxe-2"' in a and 'id = "bitaxe-3"' in b and 'host = "10.0.0.5"' in a
+
+
+def test_procura_contra_o_simulador_luxos():
+    """LuxOS de verdade em TCP (simulador): a sondagem acha; endereço sem nada responde None."""
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
+    import simulador
+    import httpx
+
+    async def go():
+        server = await asyncio.start_server(simulador.handle_luxos, "127.0.0.1", 0)
+        port = server.sockets[0].getsockname()[1]
+        orig = discover.luxos.command
+        discover.luxos.command = lambda h, p, c, timeout: orig(h, port, c, timeout=timeout)
+        try:
+            async with httpx.AsyncClient() as client:
+                return await discover._probe(client, "127.0.0.1", asyncio.Semaphore(1))
+        finally:
+            discover.luxos.command = orig
+            server.close()
+
+    found = asyncio.run(go())
+    assert found and found["type"] == "luxos" and found["model"] == "Antminer S19j XP"
