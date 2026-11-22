@@ -199,6 +199,9 @@
   .mup b { font: 600 19px/1.1 var(--cond); color: var(--ink); font-variant-numeric: tabular-nums; }
   .mup.on { background: color-mix(in srgb, var(--good) 6%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--good) 30%, var(--hair)); }
   .mup.on b { color: var(--good-text); }
+  /* sem dado novo há mais de 5 min: o número na tela pode estar velho */
+  .mup.stale { background: color-mix(in srgb, var(--warning) 8%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warning) 35%, var(--hair)); }
+  .mup.stale b, .stamp.stale { color: var(--gold-text); }
   .spark { display: block; width: 100%; height: 56px; margin-top: 12px; }
   .spark .l { fill: none; stroke: var(--c); stroke-width: 2; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
   .spark .a { fill: var(--c); opacity: .16; }
@@ -953,6 +956,9 @@ function dayStrip(m) {                 // últimas 24 h por hora do relógio, co
 }
 const bestShare = b => b ? `<dt>Recorde de share</dt><dd>${compact(b.value)} <small>em ${new Date(b.ts * 1000).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</small></dd>` : "";
 
+const stale = t => t && Date.now() / 1000 - t > 300 ? " stale" : "";   // dado com mais de 5 min
+const stampOf = t => `<div class="stamp${stale(t)}"${stale(t) ? ` title="Sem dado novo há mais de 5 minutos"` : ""}>Leitura ${ago(t)}</div>`;
+
 function minerCard(m) {
   const L = m.local, P = m.pool_worker;
   const reasons = m.reasons.length && !["online", "idle", "sleeping"].includes(m.status)
@@ -990,13 +996,13 @@ function minerCard(m) {
   const sub = [TYPE_LABEL[m.type], L?.model, m.coin === "BCH" ? "Bitcoin Cash" : "", P?.mode === "solo" ? "Solo" : P?.mode, L?.firmware]
     .filter(Boolean).map(esc).join(" · ");
   const up = L && L.online && L.uptime_s != null ? `<div class="mup on"><span>Ligada há</span><b>${duration(L.uptime_s)}</b></div>`
-    : P && P.last_seen ? `<div class="mup${P.online ? " on" : ""}"><span>Último share</span><b>${ago(P.last_seen)}</b></div>` : "";
+    : P && P.last_seen ? `<div class="mup${m.status !== "idle" && stale(P.last_seen) || (P.online ? " on" : "")}"><span>Último share</span><b>${ago(P.last_seen)}</b></div>` : "";
   return `<article class="card mcard" id="m-${esc(m.id)}" aria-label="${esc(m.name)}">
     <div class="card-head"><div style="min-width:0"><div class="card-title">${esc(m.name)}</div><div class="msub">${sub}</div></div>
       <div class="head-actions">${m.control ? `<button class="ctl-open" data-ctl="${esc(m.id)}" aria-label="Controle remoto de ${esc(m.name)}"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="2.4"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"/></svg>Controle</button>` : ""}${pill(m.status)}${m.type === "rental" && !["online", "warning"].includes(m.status)
         ? `<button class="close" data-hide="${esc(m.id)}" title="Fechar (aluguel encerrado)" aria-label="Fechar o card ${esc(m.name)}">×</button>` : ""}</div></div>
     ${reasons}${up}${sparkSvg(m.id)}${dayStrip(m)}${body}${m.rental ? rentalBlock(m.rental, "rent-" + m.id) : ""}${m.finance ? financeBlock(m.finance, m.status) : ""}
-    ${m.local_at ? `<div class="stamp">Leitura ${ago(m.local_at)}</div>` : ""}
+    ${m.local_at ? stampOf(m.local_at) : ""}
   </article>`;
 }
 
@@ -1030,7 +1036,7 @@ function poolCard(p) {
     ${p.error ? `<div class="err">${esc(p.error)}</div>` : ""}
     <div class="metrics">${metric("Hashrate", hr(p.hashrate_ths))}${metric("Melhor dificuldade", compact(p.best_diff))}${extra}</div>
     ${rows ? `<table><thead><tr><th>Worker</th><th class="num">Hashrate</th><th class="num">Melhor dif.</th><th class="num">Visto</th></tr></thead><tbody>${rows}</tbody></table>` : ""}
-    ${p.at ? `<div class="stamp">Leitura ${ago(p.at)}</div>` : ""}
+    ${p.at ? stampOf(p.at) : ""}
   </article>`;
 }
 
