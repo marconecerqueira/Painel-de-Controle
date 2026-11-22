@@ -74,6 +74,25 @@ def test_low_hashrate_and_temperature():
     assert "temperatura alta" in text and "85 °C" in text
 
 
+def test_temperatura_so_normaliza_5_graus_abaixo_do_limite():
+    e = AlertEngine(AlertSettings(), notifier=FakeNotifier())
+    run(e, snap(temp=78), T0)
+    assert run(e, snap(temp=78), T0 + 120) == []             # abaixo de 80: nem começa
+    run(e, snap(temp=81), T0 + 130)
+    msgs = run(e, snap(temp=81), T0 + 200)                   # disparou (limite 80)
+    assert "temperatura alta" in msgs[0] and "some abaixo de 75 °C" in msgs[0]
+    assert run(e, snap(temp=77), T0 + 300) == []             # 77 °C: continua ativo
+    assert run(e, snap(temp=79), T0 + 500) == []             # oscila perto do limite: sem nova mensagem
+    run(e, snap(temp=74), T0 + 600)
+    msgs = run(e, snap(temp=74), T0 + 661)                   # 74 °C por 1 min: resolvido
+    assert len(msgs) == 1 and "temperatura normalizada" in msgs[0]
+
+    # pendente (ainda não disparou) não ganha folga: caiu abaixo do limite, descarta
+    run(e, snap(temp=82), T0 + 1000)
+    run(e, snap(temp=78), T0 + 1030)
+    assert run(e, snap(temp=78), T0 + 1100) == [] and "s19:temp" not in e.active
+
+
 def test_unknown_status_does_not_resolve():
     e = AlertEngine(AlertSettings(), notifier=FakeNotifier())
     run(e, snap("offline"), T0)

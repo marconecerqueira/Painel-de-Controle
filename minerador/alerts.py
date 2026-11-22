@@ -29,6 +29,7 @@ class AlertSettings:
     clear_s: float = 60            # tempo "normal" exigido antes de resolver
     hashrate_clear_s: float = 300  # hashrate oscila mais: exige 5 min normal
     low_hashrate_ratio: float = 0.7
+    temp_hyst_c: float = 5.0       # alerta de temperatura que já disparou só some 5 °C abaixo do limite
 
 
 @dataclass
@@ -72,10 +73,20 @@ def _hr(ths: float) -> str:
     return f"{_fmt(ths * 1e6)} MH/s"
 
 
-def conditions(snap: dict, cfg: AlertSettings) -> tuple[list[Condition], set[str]]:
-    """Retorna (condições ativas agora, escopos com estado desconhecido)."""
+def conditions(snap: dict, cfg: AlertSettings,
+               fired: set[str] = frozenset()) -> tuple[list[Condition], set[str]]:
+    """Retorna (condições ativas agora, escopos com estado desconhecido).
+
+    `fired`: chaves de alertas que já dispararam (para a folga da temperatura).
+    """
     out: list[Condition] = []
     unknown: set[str] = set()
+
+    def hot(key: str, t, tmax) -> bool:
+        """Passou do limite; se o alerta já disparou, continua quente até cair `temp_hyst_c` abaixo."""
+        if t is None or not tmax:
+            return False
+        return t >= (tmax - cfg.temp_hyst_c if key in fired else tmax)
 
     for m in snap["miners"]:
         mid, name, status = m["id"], m["name"], m["status"]
@@ -117,14 +128,16 @@ def conditions(snap: dict, cfg: AlertSettings) -> tuple[list[Condition], set[str
 
         if local_on:
             t, tmax = L.get("temp_max_c"), lim.get("temp_max_c")
-            if t is not None and tmax and t >= tmax:
+            if hot(f"{mid}:temp", t, tmax):
                 out.append(Condition(f"{mid}:temp", mid, f"{name}: temperatura alta",
-                                     f"{t:.0f} °C (limite {tmax:.0f} °C).", cfg.temp_s,
+                                     f"{t:.0f} °C (limite {tmax:.0f} °C; o aviso some abaixo de "
+                                     f"{tmax - cfg.temp_hyst_c:.0f} °C).", cfg.temp_s,
                                      f"{name}: temperatura normalizada", clear_s=cfg.clear_s))
             vr, vrmax = L.get("temp_vr_c"), lim.get("vr_temp_max_c")
-            if vr is not None and vrmax and vr >= vrmax:
+            if hot(f"{mid}:vrtemp", vr, vrmax):
                 out.append(Condition(f"{mid}:vrtemp", mid, f"{name}: regulador (VR) quente",
-                                     f"{vr:.0f} °C (limite {vrmax:.0f} °C).", cfg.temp_s,
+                                     f"{vr:.0f} °C (limite {vrmax:.0f} °C; o aviso some abaixo de "
+                                     f"{vrmax - cfg.temp_hyst_c:.0f} °C).", cfg.temp_s,
                                      f"{name}: VR normalizado", clear_s=cfg.clear_s))
             for w in L.get("warnings") or []:
                 if "SUPERAQUECIMENTO" in w:
@@ -219,7 +232,7 @@ class AlertEngine:
     async def evaluate(self, snap: dict, now: float | None = None) -> list[str]:
         """Avalia o snapshot; envia e retorna as mensagens geradas."""
         now = time.time() if now is None else now
-        conds, unknown = conditions(snap, self.settings)
+        conds, unknown = conditions(snap, self.settings, {k for k, s in self.active.items() if s.notified})
         current = {c.key: c for c in conds}
         fired: list[AlertState] = []
         backlog: list[AlertState] = []   # já disparou só no painel; Telegram foi ligado depois
