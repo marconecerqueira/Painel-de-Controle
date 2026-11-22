@@ -61,9 +61,25 @@
   .rack { --silk: var(--ink); --silk-2: var(--ink-2); background: var(--surface); color: var(--ink); border-radius: 12px; padding: 16px; box-shadow: inset 0 0 0 1px var(--hair); }
   .rack-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
   h1 { font: 700 26px/1.1 var(--cond); margin: 0; letter-spacing: .01em; }
-  h1.brand { line-height: 0; margin: -6px 0 2px -4px; }
-  h1.brand img { display: block; height: 104px; width: auto; }
-  @media (max-width: 560px) { h1.brand img { height: 84px; } }
+  /* logo no tamanho de sempre, com um arco de luz girando à volta e faíscas piscando */
+  .brand-stage { position: relative; width: 104px; height: 104px; margin: -6px 0 2px -4px; }
+  @media (max-width: 560px) { .brand-stage { width: 84px; height: 84px; } }
+  h1.brand { position: relative; z-index: 1; margin: 0; line-height: 0; }
+  h1.brand img { display: block; width: 100%; height: auto; }
+  .brand-arc { position: absolute; inset: -4% 1% 6% 1%; border-radius: 50%; will-change: transform;   /* centrado no emblema redondo, acima da faixa do nome */
+    background: conic-gradient(transparent 0 62%, color-mix(in srgb, var(--led-good) 70%, transparent) 90%, var(--led-good) 94%, transparent 94.5%);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
+    filter: drop-shadow(0 0 3px var(--led-good)); animation: brand-spin 7s linear infinite; }
+  .brand-stage .bs { position: absolute; width: var(--s); height: var(--s); margin: calc(var(--s) / -2); border-radius: 50%;
+    background: var(--c, var(--led-good)); box-shadow: 0 0 4px var(--c, var(--led-good)); opacity: 0; animation: brand-twinkle 3.2s ease-in-out var(--d) infinite; }
+  @keyframes brand-spin { to { transform: rotate(1turn); } }
+  @keyframes brand-twinkle { 0%, 100% { opacity: 0; transform: scale(.4); } 50% { opacity: .95; transform: scale(1); } }
+  .brand-stage.paused * { animation-play-state: paused; }   /* fora da tela: parado */
+  html.leve .brand-stage * { animation: none !important; }
+  html.leve .brand-stage .bs { opacity: .45; box-shadow: none; }
+  html.leve .brand-arc { filter: none; }
+  @media (prefers-reduced-motion: reduce) { .brand-stage * { animation: none !important; } .brand-stage .bs { opacity: .45; } }
   .live { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--silk-2); margin-top: 4px; }
   .live i { width: 8px; height: 8px; border-radius: 50%; background: var(--led-good); box-shadow: 0 0 6px var(--led-good); }
   .live.stale { color: var(--loss-text); }
@@ -624,7 +640,10 @@
   <section class="rack" aria-labelledby="titulo">
     <div class="rack-top">
       <div>
-        <h1 id="titulo" class="brand"><img src="/static/logo.svg?v=20261118" alt="Painel de Controle" width="520" height="520"></h1>
+        <div class="brand-stage" id="brand-stage">
+          <i class="brand-arc" aria-hidden="true"></i>
+          <h1 id="titulo" class="brand"><img src="/static/logo.svg?v=20261118" alt="Painel de Controle" width="520" height="520"></h1>
+        </div>
         <div class="live" id="updated" aria-live="polite"><i id="live-led"></i><span>Conectando…</span></div>
         <button class="leve-btn" id="leve-btn" type="button" aria-pressed="false" title="Desliga as animações para poupar memória e bateria; os dados continuam ao vivo">
           <span class="sw" aria-hidden="true"></span>Modo leve</button>
@@ -1497,6 +1516,19 @@ function setLeve(v) {
   globeKick();
 }
 document.getElementById("leve-btn").addEventListener("click", () => setLeve(!leve));
+
+// logo: faíscas em volta do emblema (posições fixas, piscam em tempos diferentes); nenhuma embaixo, onde fica o "Ao vivo"
+{
+  const st = document.getElementById("brand-stage");
+  let h = "";
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16 + (i % 3) * .013) * 2 * Math.PI, r = 52 + (i * 7) % 10;   // % do emblema, logo fora do arco
+    if (Math.sin(a) > .5) continue;
+    h += `<i class="bs" aria-hidden="true" style="left:${(50 + r * Math.cos(a)).toFixed(1)}%;top:${(45 + r * Math.sin(a)).toFixed(1)}%;--s:${2 + i % 2}px;--d:${((i * 1.37) % 3.2).toFixed(2)}s${i % 5 === 2 ? ";--c:var(--led-warn)" : ""}"></i>`;
+  }
+  st.insertAdjacentHTML("beforeend", h);
+  new IntersectionObserver(es => st.classList.toggle("paused", !es[0].isIntersecting)).observe(st);
+}
 setLeve(leve);
 
 // ------------------------------------------------------------------ globo 3D (WebGL): Terra girando, anel fino e o sol dando voltas
