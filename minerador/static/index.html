@@ -252,28 +252,36 @@
   /* ---------------- gráfico (paleta categórica validada — não mexer) */
   :root { --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --total: #44534c; --axis: #b8c3bd; }
   @media (prefers-color-scheme: dark) { :root { --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --total: #a6b4ad; --axis: #33423b; } }
-  .chart-card { margin-top: 12px; padding-bottom: 12px; }
-  .chart-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .chart-card { margin-top: 12px; }
   .seg { display: inline-flex; background: var(--track); border-radius: 9px; padding: 3px; }
   .seg button { border: 0; background: transparent; color: var(--ink-2); font: 500 14px var(--cond); padding: 4px 12px; border-radius: 7px; cursor: pointer; }
   .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--hair); font-weight: 600; }
-  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 12px 0 4px; font-size: 13.5px; color: var(--ink-2); }
-  .legend span { display: inline-flex; align-items: center; gap: 6px; }
-  .legend i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
-  .chart-wrap { position: relative; outline: none; }
-  .chart-wrap:focus-visible { box-shadow: 0 0 0 2px var(--accent); border-radius: 6px; }
-  .chart-wrap svg { display: block; width: 100%; overflow: visible; font-family: var(--text); }
-  .chart-wrap .grid-line { stroke: var(--hair); stroke-width: 1; }
-  .chart-wrap .base-line { stroke: var(--axis); stroke-width: 1; }
-  .chart-wrap .tick { fill: var(--muted); font-size: 12px; }
-  .chart-wrap .dlabel { fill: var(--ink-2); font-size: 12.5px; font-weight: 600; }
-  .chart-wrap .cross { stroke: var(--muted); stroke-width: 1; }
-  .tip { position: absolute; top: 0; pointer-events: none; background: var(--surface); box-shadow: 0 0 0 1px var(--hair), 0 8px 24px rgba(10,20,16,.18); border-radius: 9px; padding: 8px 10px; font-size: 13px; min-width: 180px; display: none; z-index: 2; }
+  /* gráfico de barras: número grande + barras do total + quadrinhos */
+  .hb { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 760px) { .hb { grid-template-columns: 1fr; } }
+  .hb-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .hb-kicker { font: 600 13px var(--cond); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); }
+  .hb-hero { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 4px 0 10px; }
+  .hb-num { font: 700 56px/1 var(--cond); color: var(--s3); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+  .hb-num small { font-size: .55em; margin-left: 6px; }
+  .hb-delta { font: 600 14px var(--cond); padding: 4px 10px; border-radius: 999px; background: var(--track); font-variant-numeric: tabular-nums; }
+  .hb-delta.up { color: var(--good-text); } .hb-delta.down { color: var(--loss-text); }
+  .hb-plot { position: relative; outline: none; }
+  .hb-plot:focus-visible { box-shadow: 0 0 0 2px var(--accent); border-radius: 6px; }
+  .hb-plot svg { display: block; width: 100%; }
+  .hb-plot rect.bar { transition: opacity .15s; }
+  .hb-plot.hovering rect.bar:not(.on) { opacity: .45; }
+  .hb-ends { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .hb-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-top: 30px; }
+  @media (max-width: 760px) { .hb-tiles { padding-top: 0; } }
+  .hb-tile { border-radius: 10px; box-shadow: inset 0 0 0 1px var(--hair); padding: 12px 14px; }
+  .hb-tile .k { color: var(--ink-2); font-size: 14px; }
+  .hb-tile .v { font: 700 22px/1.2 var(--cond); font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .hb-tile .v small { font-size: .7em; color: var(--ink-2); margin-left: 3px; }
+  .tip { position: absolute; top: 0; pointer-events: none; background: var(--surface); box-shadow: 0 0 0 1px var(--hair), 0 8px 24px rgba(10,20,16,.18); border-radius: 9px; padding: 8px 10px; font-size: 13px; min-width: 190px; display: none; z-index: 2; }
   .tip .t { color: var(--muted); margin-bottom: 4px; }
-  .tip .r { display: flex; justify-content: space-between; gap: 14px; }
-  .tip .r span:first-child { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); }
-  .tip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-  .chart-note { color: var(--muted); font-size: 13px; margin-top: 6px; }
+  .tip .r { display: flex; justify-content: space-between; gap: 14px; color: var(--ink-2); }
+  .tip .r.tot { color: var(--ink); font-weight: 600; border-bottom: 1px solid var(--hair); padding-bottom: 3px; margin-bottom: 3px; }
   details.tbl { margin-top: 8px; font-size: 13.5px; }
   details.tbl summary { cursor: pointer; color: var(--accent); }
   details.tbl .scroll { max-height: 260px; overflow: auto; }
@@ -613,15 +621,20 @@
   <div class="alert-banner" id="alert-banner" role="alert" hidden></div>
 
   <section class="card chart-card" aria-labelledby="chart-title">
-    <div class="chart-top">
-      <div class="card-title" id="chart-title">Hashrate</div>
-      <div class="seg" role="group" aria-label="Período" id="ranges">
-        <button data-r="24h">24 h</button><button data-r="3d">3 dias</button><button data-r="7d">7 dias</button><button data-r="30d">30 dias</button>
+    <div class="hb">
+      <div>
+        <div class="hb-top">
+          <div class="hb-kicker" id="chart-title">Hashrate total agora</div>
+          <div class="seg" role="group" aria-label="Período" id="ranges">
+            <button data-r="24h">24 h</button><button data-r="3d">3 dias</button><button data-r="7d">7 dias</button><button data-r="30d">30 dias</button>
+          </div>
+        </div>
+        <div class="hb-hero"><div class="hb-num" id="hb-num">—</div><div class="hb-delta" id="hb-delta"></div></div>
+        <div class="hb-plot" id="chart" tabindex="0" role="img" aria-label="Gráfico de barras do hashrate total"><div class="tip" id="tip"></div></div>
+        <div class="hb-ends"><span id="hb-from"></span><span>agora</span></div>
       </div>
+      <div class="hb-tiles" id="hb-tiles"></div>
     </div>
-    <div class="legend" id="legend"></div>
-    <div class="chart-wrap" id="chart" tabindex="0" role="img" aria-label="Gráfico de hashrate"><div class="tip" id="tip"></div></div>
-    <div class="chart-note" id="chart-note"></div>
     <details class="tbl"><summary>Ver como tabela</summary><div class="scroll" id="chart-table"></div></details>
   </section>
 
@@ -1170,6 +1183,7 @@ async function refresh() {
     document.getElementById("miners-hidden").innerHTML = hidden.length
       ? `${hidden.length === 1 ? "Aluguel encerrado fechado" : "Aluguéis encerrados fechados"}: ${hidden.map(m => esc(m.name)).join(", ")}. <button class="linkbtn" data-showall>Mostrar de novo</button>` : "";
     document.getElementById("ledger").innerHTML = ledgerHtml(s.rentals_done);
+    liveThs = s.totals?.hashrate_ths ?? null;
     if (hist) drawChart();
     document.getElementById("pools").innerHTML = s.pools.map(poolCard).join("");
     renderAlerts(s.alerts);
@@ -1185,23 +1199,11 @@ function updateClock() {
 }
 
 // ------------------------------------------------------------------ gráfico de hashrate
-const SLOTS = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)", "var(--s6)"];
-let hist = null, chartRange = "24h", crossIdx = null;
+let hist = null, chartRange = "24h", sel = null, liveThs = null;   // liveThs: mesmo total ao vivo do topo
 try { chartRange = localStorage.getItem("minerador.range") || "24h"; } catch (e) {}
 if (!["24h", "3d", "7d", "30d"].includes(chartRange)) chartRange = "24h";
+const RANGE_TXT = { "24h": "24 h", "3d": "3 dias", "7d": "7 dias", "30d": "30 dias" };
 
-function chartSeries(h) {
-  // cor segue a máquina (ordem do config), nunca a posição na lista filtrada
-  const out = h.series.map((s, i) => ({ ...s, color: SLOTS[i % SLOTS.length] })).filter(s => !hiddenIds.has(s.id));
-  h.pool_totals.forEach(t => out.push({ ...t, color: "var(--total)", total: true }));
-  return out.filter(s => s.points.length);
-}
-function niceMax(v) {
-  if (!(v > 0)) return 1;
-  const raw = v * 1.12 / 4, mag = 10 ** Math.floor(Math.log10(raw));
-  const step = [1, 2, 2.5, 5, 10].map(f => f * mag).find(x => x >= raw);
-  return step * 4;
-}
 function fmtTime(t, range, long) {
   const d = new Date(t * 1000);
   const hm = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -1210,113 +1212,107 @@ function fmtTime(t, range, long) {
   return range === "24h" ? hm : dm;
 }
 const hrText = ths => { const [v, u] = hashrate(ths); return `${v} ${u}`; };
+const hrBig = ths => { const [v, u] = hashrate(ths); return `${v}<small>${u}</small>`; };
+
+// Soma as máquinas visíveis por intervalo (o total da pool fica de fora: já está dentro das máquinas).
+function chartBuckets(h) {
+  const b = h.bucket_s, first = Math.floor(h.since / b), last = Math.floor(h.until / b), out = [];
+  for (let k = first; k <= last; k++) out.push({ t: k * b + b / 2, total: null, parts: [] });
+  for (const s of h.series) {
+    if (hiddenIds.has(s.id)) continue;
+    for (const [t, v] of s.points) {
+      const o = out[Math.floor(t / b) - first];
+      if (!o) continue;
+      o.total = (o.total ?? 0) + v;
+      o.parts.push([s.name, v]);
+    }
+  }
+  return out;
+}
+// Junta intervalos vizinhos para ficar em ~50 barras largas (média de cada máquina no grupo).
+function chartGroup(raw, bucket, max = 50) {
+  const per = Math.ceil(raw.length / max), out = [];
+  for (let i = 0; i < raw.length; i += per) {
+    const g = raw.slice(i, i + per), sums = {}, cnt = {};
+    for (const o of g) for (const [nm, v] of o.parts) { sums[nm] = (sums[nm] ?? 0) + v; cnt[nm] = (cnt[nm] ?? 0) + 1; }
+    const tot = g.filter(o => o.total != null);
+    out.push({ t0: g[0].t - bucket / 2, t: g[g.length - 1].t + bucket / 2,
+      parts: Object.keys(sums).map(nm => [nm, sums[nm] / cnt[nm]]),
+      total: tot.length ? tot.reduce((a, o) => a + o.total, 0) / tot.length : null });
+  }
+  return out;
+}
 
 function drawChart() {
-  const el = document.getElementById("chart");
-  const tip = document.getElementById("tip");
   if (!hist) return;
-  const series = chartSeries(hist);
-  const W = Math.max(280, el.clientWidth), narrow = W < 560;
-  const H = narrow ? 210 : 240, m = { t: 26, r: narrow ? 8 : 132, b: 24, l: 44 };
-  const iw = W - m.l - m.r, ih = H - m.t - m.b;
-  const x0 = hist.since, x1 = hist.until;
-  const yMax = niceMax(Math.max(0, ...series.flatMap(s => s.points.map(p => p[1]))));
-  const X = t => m.l + (t - x0) / (x1 - x0) * iw, Y = v => m.t + ih - v / yMax * ih;
+  const el = document.getElementById("chart"), tip = document.getElementById("tip");
+  const all = chartBuckets(hist), raw = all.filter(o => o.total != null);
+  const now = raw[raw.length - 1] || null;
+  const cur = liveThs ?? now?.total ?? null;   // número grande = total ao vivo; a última barra é a média dos últimos minutos
+  const avg = raw.length ? raw.reduce((a, o) => a + o.total, 0) / raw.length : null;
+  const bs = chartGroup(all, hist.bucket_s), withData = bs.filter(o => o.total != null);
+  const nowIdx = bs.lastIndexOf(withData[withData.length - 1]);
 
-  let g = "";
-  for (let i = 0; i <= 4; i++) {           // grade e eixo Y
-    const v = yMax * i / 4, y = Y(v);
-    g += `<line class="${i ? "grid-line" : "base-line"}" x1="${m.l}" x2="${m.l + iw}" y1="${y}" y2="${y}"/>`;
-    g += `<text class="tick" x="${m.l - 6}" y="${y + 4}" text-anchor="end">${nf(v, v < 10 && v % 1 ? 1 : 0)}</text>`;
-  }
-  g += `<text class="tick" x="${m.l - 6}" y="${m.t - 14}" text-anchor="end">TH/s</text>`;
-  const stepH = { "24h": 3, "3d": 12, "7d": 24, "30d": 24 * 5 }[hist.range] * 3600;
-  const off = new Date().getTimezoneOffset() * 60;
-  for (let t = Math.ceil((x0 + off) / stepH) * stepH - off; t <= x1; t += stepH) {   // eixo X em horário local
-    if (X(t) < m.l + 16 || X(t) > m.l + iw - 16) continue;
-    g += `<text class="tick" x="${X(t)}" y="${H - 6}" text-anchor="middle">${fmtTime(t, hist.range)}</text>`;
-  }
+  document.getElementById("hb-num").innerHTML = cur != null ? hrBig(cur) : "—";
+  const d = document.getElementById("hb-delta");
+  if (cur != null && avg) {
+    const p = (cur - avg) / avg * 100;
+    d.textContent = `${p >= 0 ? "+" : "−"}${nf(Math.abs(p), 1)} % vs média ${RANGE_TXT[hist.range]}`;
+    d.className = "hb-delta " + (p >= 0 ? "up" : "down");
+  } else { d.textContent = ""; d.className = "hb-delta"; }
+  document.getElementById("hb-from").textContent = `há ${RANGE_TXT[hist.range] || ""}`;
+  const tile = (k, v) => `<div class="hb-tile"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+  const totals = raw.map(o => o.total);
+  document.getElementById("hb-tiles").innerHTML =
+    tile(`Média ${RANGE_TXT[hist.range]}`, avg != null ? hrBig(avg) : "—") +
+    tile("Pico", totals.length ? hrBig(Math.max(...totals)) : "—") +
+    tile("Mais baixo", totals.length ? hrBig(Math.min(...totals)) : "—") +
+    tile("Última leitura", lastOk ? ago(lastOk / 1000) : "—");   // o número grande vem do status ao vivo
 
-  const gap = hist.bucket_s * 1.5;
-  const labels = [];
-  for (const s of series) {
-    let d = "", prev = null;
-    for (const [t, v] of s.points) {
-      d += (prev === null || t - prev > gap ? "M" : "L") + X(t).toFixed(1) + "," + Y(v).toFixed(1);
-      prev = t;
-    }
-    g += `<path d="${d}" fill="none" style="stroke:${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
-    // pontos isolados (sem vizinho) viram marcador, senão ficam invisíveis
-    s.points.forEach(([t, v], i) => {
-      const a = s.points[i - 1], b = s.points[i + 1];
-      if ((!a || t - a[0] > gap) && (!b || b[0] - t > gap))
-        g += `<circle cx="${X(t)}" cy="${Y(v)}" r="4" style="fill:${s.color};stroke:var(--surface)" stroke-width="2"/>`;
-    });
-    const last = s.points[s.points.length - 1];
-    labels.push({ y: Y(last[1]), x: X(last[0]), text: `${s.total ? "Total pool" : s.name}`, color: s.color });
-  }
-  if (!narrow) {                            // rótulos diretos no fim das linhas, sem colisão
-    labels.sort((a, b) => a.y - b.y);
-    for (let i = 1; i < labels.length; i++) labels[i].y = Math.max(labels[i].y, labels[i - 1].y + 14);
-    const over = labels.length ? labels[labels.length - 1].y - (m.t + ih) : 0;
-    if (over > 0) labels.forEach(l => l.y -= over);
-    for (const l of labels)
-      g += `<text class="dlabel" x="${m.l + iw + 8}" y="${l.y + 4}">${esc(l.text)}</text>`;
-  }
-  g += `<g id="xh"></g><rect id="hit" x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent"/>`;
-
-  const svgNS = `<svg viewBox="0 0 ${W} ${H}" height="${H}" aria-hidden="true">${g}</svg>`;
-  el.querySelectorAll("svg").forEach(n => n.remove());
-  el.insertAdjacentHTML("afterbegin", svgNS);
-
-  // ----- cursor + tooltip (encontra o X mais próximo; lista todas as séries)
-  const xs = [...new Set(series.flatMap(s => s.points.map(p => p[0])))].sort((a, b) => a - b);
-  const valueAt = (s, t) => { const p = s.points.find(p => Math.abs(p[0] - t) < hist.bucket_s / 2); return p ? p[1] : null; };
-  function show(idx) {
-    const xh = el.querySelector("#xh");
-    if (idx == null || !xs.length) { xh.innerHTML = ""; tip.style.display = "none"; return; }
-    crossIdx = idx = Math.max(0, Math.min(xs.length - 1, idx));
-    const t = xs[idx], px = X(t);
-    let dots = `<line class="cross" x1="${px}" x2="${px}" y1="${m.t}" y2="${m.t + ih}"/>`;
-    let rows = "";
-    for (const s of series) {
-      const v = valueAt(s, t);
-      if (v != null) dots += `<circle cx="${px}" cy="${Y(v)}" r="4" style="fill:${s.color};stroke:var(--surface)" stroke-width="2"/>`;
-      rows += `<div class="r"><span><i style="background:${s.color}"></i>${esc(s.total ? "Total na pool" : s.name)}</span><b>${v == null ? "—" : hrText(v)}</b></div>`;
-    }
-    xh.innerHTML = dots;
-    tip.innerHTML = `<div class="t">${fmtTime(t, hist.range, true)}</div>${rows}`;
-    tip.style.display = "block";
-    const tw = tip.offsetWidth, left = px + 12 + tw > W ? px - 12 - tw : px + 12;
-    tip.style.left = `${Math.max(0, left)}px`;
-    tip.style.top = `${m.t}px`;
-  }
-  const hit = el.querySelector("#hit");
-  hit.addEventListener("pointermove", ev => {
-    const r = el.getBoundingClientRect(), t = x0 + (ev.clientX - r.left - m.l) / iw * (x1 - x0);
-    let best = 0; xs.forEach((x, i) => { if (Math.abs(x - t) < Math.abs(xs[best] - t)) best = i; });
-    show(best);
+  const W = Math.max(280, el.clientWidth), H = W < 560 ? 120 : 150;
+  const n = bs.length, step = W / n, gap = step > 4 ? 2 : step > 2 ? 1 : 0, bw = Math.max(1, step - gap), rx = Math.min(3, bw / 2);
+  const yMax = Math.max(0, ...withData.map(o => o.total)) * 1.05 || 1;
+  let g = `<defs><linearGradient id="hbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--s3)"/><stop offset="1" style="stop-color:var(--s3);stop-opacity:.35"/></linearGradient>
+    <linearGradient id="hbn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--s2)"/><stop offset="1" style="stop-color:var(--s2);stop-opacity:.45"/></linearGradient></defs>`;
+  bs.forEach((o, i) => {
+    const h = o.total == null ? 3 : Math.max(3, o.total / yMax * H);   // intervalo sem leitura = toco baixinho
+    g += `<rect class="bar" data-i="${i}" x="${(i * step).toFixed(2)}" y="${(H - h).toFixed(2)}" width="${bw.toFixed(2)}" height="${h.toFixed(2)}" rx="${rx}"
+      fill="${i === nowIdx ? "url(#hbn)" : o.total == null ? "var(--track)" : "url(#hbg)"}"/>`;
   });
-  hit.addEventListener("pointerleave", () => { crossIdx = null; show(null); });
-  el.onkeydown = ev => {
-    if (ev.key === "ArrowLeft" || ev.key === "ArrowRight") {
-      show(crossIdx == null ? xs.length - 1 : crossIdx + (ev.key === "ArrowRight" ? 1 : -1)); ev.preventDefault();
-    } else if (ev.key === "Escape") { crossIdx = null; show(null); }
-  };
-  el.onblur = () => { crossIdx = null; show(null); };
+  el.querySelectorAll("svg").forEach(x => x.remove());
+  el.insertAdjacentHTML("afterbegin", `<svg viewBox="0 0 ${W} ${H}" height="${H}" aria-hidden="true">${g}</svg>`);
 
-  // ----- legenda, nota e tabela
-  document.getElementById("legend").innerHTML = series.map(s =>
-    `<span><i style="background:${s.color}"></i>${esc(s.total ? "Total na pool (todas as máquinas)" : s.name)}</span>`).join("")
-    || '<span>Sem dados ainda</span>';
-  const firstOwn = Math.min(...hist.series.filter(s => s.points.length).map(s => s.points[0][0]));
-  document.getElementById("chart-note").textContent = isFinite(firstOwn)
-    ? `Linhas por máquina: gravadas pelo painel desde ${fmtTime(firstOwn, "", true)}. Total: histórico da própria pool (média por ${hist.bucket_s / 60 >= 60 ? hist.bucket_s / 3600 + " h" : hist.bucket_s / 60 + " min"}).`
-    : "As linhas por máquina aparecem conforme o painel grava leituras.";
-  const head = `<tr><th>Horário</th>${series.map(s => `<th class="num">${esc(s.total ? "Total pool" : s.name)}</th>`).join("")}</tr>`;
-  const body = [...xs].reverse().map(t => `<tr><td>${fmtTime(t, "", true)}</td>${series.map(s => { const v = valueAt(s, t); return `<td class="num">${v == null ? "—" : hrText(v)}</td>`; }).join("")}</tr>`).join("");
-  document.getElementById("chart-table").innerHTML = `<table><thead>${head}</thead><tbody>${body}</tbody></table>`;
-  if (crossIdx != null) show(crossIdx);
+  // ----- balão ao passar o mouse (ou setas do teclado): total e cada máquina naquela barra
+  function show(i) {
+    el.querySelectorAll("rect.on").forEach(r => r.classList.remove("on"));
+    if (i == null || !n) { sel = null; el.classList.remove("hovering"); tip.style.display = "none"; return; }
+    sel = i = Math.max(0, Math.min(n - 1, i));
+    const o = bs[i];
+    el.querySelector(`rect[data-i="${i}"]`).classList.add("on");
+    el.classList.add("hovering");
+    tip.innerHTML = `<div class="t">${fmtTime(o.t0, "", true)} – ${fmtTime(o.t, "24h")}${i === nowIdx ? " · agora" : ""}</div>` +
+      (o.total == null ? `<div class="r">Sem leitura</div>`
+        : `<div class="r tot"><span>Total</span><b>${hrText(o.total)}</b></div>` +
+          o.parts.map(([nm, v]) => `<div class="r"><span>${esc(nm)}</span><span>${hrText(v)}</span></div>`).join(""));
+    tip.style.display = "block";
+    const px = (i + .5) * step, tw = tip.offsetWidth;
+    tip.style.left = `${Math.max(0, px + 12 + tw > W ? px - 12 - tw : px + 12)}px`;
+    tip.style.top = `${-tip.offsetHeight - 6}px`;
+  }
+  el.onpointermove = ev => show(Math.floor((ev.clientX - el.getBoundingClientRect().left) / step));
+  el.onpointerleave = () => show(null);
+  el.onkeydown = ev => {
+    if (ev.key === "ArrowLeft" || ev.key === "ArrowRight") { show(sel == null ? nowIdx : sel + (ev.key === "ArrowRight" ? 1 : -1)); ev.preventDefault(); }
+    else if (ev.key === "Escape") show(null);
+  };
+  el.onblur = () => show(null);
+
+  // ----- tabela (leituras de cada intervalo, sem juntar)
+  const names = hist.series.filter(s => s.points.length && !hiddenIds.has(s.id)).map(s => s.name);
+  document.getElementById("chart-table").innerHTML = `<table><thead><tr><th>Horário</th><th class="num">Total</th>${names.map(nm => `<th class="num">${esc(nm)}</th>`).join("")}</tr></thead><tbody>` +
+    raw.slice().reverse().map(o => `<tr><td>${fmtTime(o.t, "", true)}</td><td class="num">${hrText(o.total)}</td>${names.map(nm => { const p = o.parts.find(x => x[0] === nm); return `<td class="num">${p ? hrText(p[1]) : "—"}</td>`; }).join("")}</tr>`).join("") +
+    `</tbody></table>`;
+  if (sel != null) show(sel);
 }
 
 async function loadHistory() {
@@ -1326,7 +1322,7 @@ async function loadHistory() {
     hist = await r.json();
     drawChart();
   } catch (e) {
-    document.getElementById("chart-note").textContent = "Não foi possível carregar o histórico.";
+    document.getElementById("hb-num").textContent = "Sem histórico";
   }
 }
 function setRange(r) {
