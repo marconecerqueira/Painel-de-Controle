@@ -31,6 +31,10 @@
     --accent: #2a78d6; --loss-text: #b3261e; --gold-text: #8f6508;
     --text: "Barlow", -apple-system, "Segoe UI", system-ui, sans-serif;
     --cond: "Barlow Semi Condensed", "Barlow", -apple-system, system-ui, sans-serif;
+    /* cartões de vidro: quase sem cor, o ₿ e o gráfico do fundo aparecem através deles */
+    --glass: color-mix(in srgb, var(--surface) 55%, transparent);
+    --glass-edge: color-mix(in srgb, #2bd4a0 26%, var(--hair));
+    --bg-art: linear-gradient(135deg, #0ca30c, #12a594);
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -45,10 +49,10 @@
   /* Fundo: ₿ em contorno, candles e linha de preço sobre papel milimetrado — uma cor só, bem apagada. */
   body::before {
     content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
-    background: var(--ink); opacity: .07;
+    background: var(--bg-art); opacity: .16;
     -webkit-mask: url(/static/bg.svg) center / cover no-repeat; mask: url(/static/bg.svg) center / cover no-repeat;
   }
-  @media (prefers-color-scheme: dark) { body::before { background: var(--silk-2); opacity: .06; } }
+  @media (prefers-color-scheme: dark) { body::before { background: linear-gradient(135deg, #3ee07a, #2bd4c0); opacity: .2; } }
   main { position: relative; z-index: 1; max-width: 1160px; margin: 0 auto; padding: 20px 16px 56px; }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
@@ -58,7 +62,7 @@
 
   /* ---------------- painel do rack (topo) */
   /* mesmo fundo dos outros cartões; os tons "silk" da antiga placa verde viram as cores de texto normais */
-  .rack { --silk: var(--ink); --silk-2: var(--ink-2); background: var(--surface); color: var(--ink); border-radius: 12px; padding: 16px; box-shadow: inset 0 0 0 1px var(--hair); }
+  .rack { --silk: var(--ink); --silk-2: var(--ink-2); background: var(--glass); color: var(--ink); border-radius: 12px; padding: 16px; box-shadow: inset 0 0 0 1px var(--glass-edge); }
   .rack-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
   h1 { font: 700 26px/1.1 var(--cond); margin: 0; letter-spacing: .01em; }
   /* logo no tamanho de sempre, com um arco de luz girando à volta e faíscas piscando */
@@ -155,7 +159,7 @@
   .grid > * { min-width: 0; flex: 1 1 330px; }
   .grid > .card { display: flex; flex-direction: column; }
   .grid > .card > .stamp { margin-top: auto; padding-top: 10px; }
-  .card { background: var(--surface); border-radius: 12px; box-shadow: inset 0 0 0 1px var(--hair); padding: 16px; min-width: 0; scroll-margin-top: 16px; }
+  .card { background: var(--glass); border-radius: 12px; box-shadow: inset 0 0 0 1px var(--glass-edge); padding: 16px; min-width: 0; scroll-margin-top: 16px; }
   .card:target { box-shadow: inset 0 0 0 2px var(--accent); }
   .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
   .card-title { font: 600 18px/1.2 var(--cond); }
@@ -220,13 +224,13 @@
   .mcard > .metrics .metric.warning .v { color: var(--gold-text); }
   .mcard > .metrics .metric.critical .v { color: var(--loss-text); }
 
-  .rent { margin-top: 14px; padding: 12px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 5%, var(--surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, var(--hair)); }
+  .rent { margin-top: 14px; padding: 12px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 6%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, var(--hair)); }
   .rent-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
   .rent-head b { font: 600 16px var(--cond); }
   .rent-head span { font-size: 13px; color: var(--ink-2); }
   .rent .metrics { margin-top: 10px; }
   /* neutro: quem diz se é lucro ou prejuízo é o veredito, não a cor do quadro */
-  .fin { background: color-mix(in srgb, var(--ink) 3%, var(--surface)); box-shadow: inset 0 0 0 1px var(--hair); }
+  .fin { background: color-mix(in srgb, var(--ink) 3%, transparent); box-shadow: inset 0 0 0 1px var(--hair); }
   .v.gain, td.gain, .verdict b.gain { color: var(--good-text); }
   .v.loss, td.loss, .verdict b.loss { color: var(--loss-text); }
   .verdict { margin: 8px 0 0; max-width: 62ch; font-size: 14px; line-height: 1.45; color: var(--ink-2); }
