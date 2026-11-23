@@ -77,6 +77,11 @@
     filter: drop-shadow(0 0 3px var(--led-good)); animation: brand-spin 7s linear infinite; }
   .brand-stage .bs { position: absolute; width: var(--s); height: var(--s); margin: calc(var(--s) / -2); border-radius: 50%;
     background: var(--c, var(--led-good)); box-shadow: 0 0 4px var(--c, var(--led-good)); opacity: 0; animation: brand-twinkle 3.2s ease-in-out var(--d) infinite; }
+  /* o ₿ do centro do emblema "acende" e pulsa (luz dourada por cima, só transform/opacity) */
+  .brand-pulse { position: absolute; z-index: 2; left: 29.5%; top: 28%; width: 40%; height: 40%; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle, rgba(255,240,190,.9) 0%, rgba(255,197,46,.5) 35%, transparent 70%); mix-blend-mode: screen;
+    opacity: 0; animation: brand-pulse 2.4s ease-in-out infinite; }
+  @keyframes brand-pulse { 0%, 100% { opacity: .1; transform: scale(.85); } 45% { opacity: .9; transform: scale(1.08); } }
   @keyframes brand-spin { to { transform: rotate(1turn); } }
   @keyframes brand-twinkle { 0%, 100% { opacity: 0; transform: scale(.4); } 50% { opacity: .95; transform: scale(1); } }
   .brand-stage.paused * { animation-play-state: paused; }   /* fora da tela: parado */
@@ -668,6 +673,7 @@
       <div>
         <div class="brand-stage" id="brand-stage">
           <i class="brand-arc" aria-hidden="true"></i>
+          <i class="brand-pulse" aria-hidden="true"></i>
           <h1 id="titulo" class="brand"><img src="/static/logo.svg?v=20261118" alt="Painel de Controle" width="520" height="520"></h1>
         </div>
         <div class="live" id="updated" aria-live="polite"><i id="live-led"></i><span>Conectando…</span></div>
