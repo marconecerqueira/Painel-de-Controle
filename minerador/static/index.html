@@ -136,6 +136,8 @@
   .led.offline { background: var(--led-bad); box-shadow: 0 0 7px var(--led-bad); }
   .bay-hash { font: 600 22px/1.1 var(--cond); margin-top: 4px; }
   .bay-hash small { font: 500 14px var(--cond); color: var(--silk-2); margin-left: 3px; }
+  .bay-hash .pulse { width: 44px; margin-left: 6px; }   /* menor: cabe na gaveta estreita do celular */
+  .bay-hash { white-space: nowrap; }
   .bay-state { font-size: 12.5px; color: var(--silk-2); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bay-money { font: 600 13px var(--cond); color: var(--silk-2); margin-top: 3px; font-variant-numeric: tabular-nums; }
   .bay-bar { height: 3px; border-radius: 2px; background: var(--track); margin-top: 8px; overflow: hidden; }
@@ -186,6 +188,17 @@
   .metric .k { color: var(--muted); font-size: 12.5px; line-height: 1.25; }
   .metric .v { font: 600 18px/1.2 var(--cond); margin-top: 2px; }
   .metric .v small { font: 500 13px var(--cond); color: var(--ink-2); }
+  /* batimento ao lado do hashrate: traço apagado fixo + um trecho aceso que corre por ele; --t mantém a fase quando o cartão é redesenhado */
+  .pulse { display: inline-block; width: 58px; height: 17px; overflow: visible; vertical-align: middle; margin-left: 8px; color: var(--led-good); }
+  .hb-num .pulse { width: 110px; height: 32px; margin-left: 14px; }
+  .pulse path { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .pulse .base { opacity: .22; }
+  .pulse .beat { stroke-dasharray: 26 200; stroke-dashoffset: 26; filter: drop-shadow(0 0 3px currentColor);
+    animation: pulse-beat 2.4s linear infinite; animation-delay: calc(var(--t, 0) * -1s); }
+  @keyframes pulse-beat { to { stroke-dashoffset: -200; } }
+  html.leve .pulse .beat { animation: none; opacity: 0; }
+  html.leve .pulse .base { opacity: .6; }
+  @media (prefers-reduced-motion: reduce) { .pulse .beat { animation: none; opacity: 0; } .pulse .base { opacity: .6; } }
   .metric .sub { color: var(--muted); font: 400 12.5px/1.3 var(--text); margin-top: 1px; }
   .meter { height: 5px; background: var(--track); border-radius: 999px; overflow: hidden; margin-top: 5px; }
   .meter > span { display: block; height: 100%; border-radius: 999px; background: var(--good); }
@@ -766,6 +779,8 @@ function hashrate(ths) {               // TH/s -> [valor, unidade]
   return [nf(hs, 0), "H/s"];
 }
 const hr = ths => { const [v, u] = hashrate(ths); return `${v} <small>${u}</small>`; };
+const ECG = "M0 12H22L26 12L30 3L34 21L38 12H62L66 12L70 3L74 21L78 12H120";
+const pulse = ths => ths > 0 ? `<svg class="pulse" viewBox="0 0 120 24" aria-hidden="true" style="--t:${(performance.now() / 1000).toFixed(2)}"><path class="base" d="${ECG}"/><path class="beat" d="${ECG}"/></svg>` : "";
 
 function compact(n) {                  // dificuldade: 4,29 G
   if (n == null) return "—";
@@ -971,7 +986,7 @@ function minerCard(m) {
   if (L && L.online) {
     const eff = L.power_w && L.hashrate_ths ? L.power_w / L.hashrate_ths : null;
     body = `<div class="metrics">
-      ${metric("Hashrate agora", hr(L.hashrate_ths))}
+      ${metric("Hashrate agora", hr(L.hashrate_ths) + pulse(L.hashrate_ths))}
       ${metric(m.type === "axeos" ? "Média 1h" : "Média", hr(L.hashrate_avg_ths))}
       ${metric("Na pool", P ? hr(P.hashrate_ths) : "—")}
       ${tempMetric(m.type === "axeos" ? "Temp. ASIC" : "Temp. máx.", L.temp_max_c, m.limits.temp_max_c || (m.type === "axeos" ? 70 : 80))}
@@ -990,7 +1005,7 @@ function minerCard(m) {
     </dl>`;
   } else if (m.type === "pool_only" || m.type === "rental") {
     body = `<div class="metrics">
-      ${metric("Hashrate na pool", P ? hr(P.hashrate_ths) : "—")}
+      ${metric("Hashrate na pool", P ? hr(P.hashrate_ths) + pulse(P.online && P.hashrate_ths) : "—")}
       ${m.type === "rental" ? metric("Contratado", m.limits.expected_ths ? `${nf(m.limits.expected_ths, 1)} <small>TH/s</small>` : "—") : ""}
       ${metric("Melhor dificuldade", compact(P?.best_diff))}
     </div>
@@ -1119,7 +1134,7 @@ function bayHtml(m) {
     : cash == null ? "" : m.finance ? `${eurSigned(cash)}/dia` : `aluguel ${eurSigned(cash)}`;
   return `<a class="bay" href="#m-${esc(m.id)}" aria-label="${esc(m.name)}: ${esc(state)}${money ? ", " + esc(money) : ""}">
     <div class="bay-head"><i class="led ${m.status}" aria-hidden="true"></i><span>${esc(m.name)}</span></div>
-    <div class="bay-hash">${ths == null ? "—" : `${v}<small>${u}</small>`}</div>
+    <div class="bay-hash">${ths == null ? "—" : `${v}<small>${u}</small>${pulse(ths)}`}</div>
     <div class="bay-state">${esc(state)}</div>
     ${money ? `<div class="bay-money ${m.rental?.state === "novo" ? "" : signCls(cash)}">${esc(money)}</div>` : ""}
     ${pct != null ? `<div class="bay-bar" title="${nf(pct, 0)}% do esperado"><span class="${pct < 70 ? "low" : ""}" style="width:${pct}%"></span></div>` : ""}
@@ -1349,7 +1364,7 @@ function drawChart() {
   const bs = chartGroup(all, hist.bucket_s), withData = bs.filter(o => o.total != null);
   const nowIdx = bs.lastIndexOf(withData[withData.length - 1]);
 
-  document.getElementById("hb-num").innerHTML = cur != null ? hrBig(cur) : "—";
+  document.getElementById("hb-num").innerHTML = cur != null ? hrBig(cur) + pulse(cur) : "—";
   const d = document.getElementById("hb-delta");
   if (cur != null && avg) {
     const p = (cur - avg) / avg * 100;
