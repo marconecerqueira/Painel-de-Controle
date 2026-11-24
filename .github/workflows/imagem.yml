@@ -1,0 +1,44 @@
+# Monta a imagem do app (Raspberry Pi = arm64, PC = amd64), testa e publica em ghcr.io.
+# Usada pelo app do Umbrel (repositório umbrel-loja). Nenhum segredo entra na imagem.
+name: Imagem Docker
+
+on:
+  push:
+    branches: [main]
+    paths: ["minerador/**", "pyproject.toml", "Dockerfile", "deploy/umbrel/**", "config.example.toml", ".github/workflows/imagem.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGEM: ghcr.io/marconecerqueira/painel-de-controle
+
+jobs:
+  imagem:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Teste rápido (amd64): o contêiner sobe e responde
+        run: |
+          docker build -t painel-teste .
+          docker run -d --name t -p 8080:8080 painel-teste
+          for i in $(seq 1 30); do curl -fs http://127.0.0.1:8080/api/health && break; sleep 1; done
+          curl -fs http://127.0.0.1:8080/api/health
+          docker logs t
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64,linux/amd64
+          push: true
+          tags: |
+            ${{ env.IMAGEM }}:latest
+            ${{ env.IMAGEM }}:${{ github.sha }}

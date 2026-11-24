@@ -76,6 +76,12 @@ Visual do cartão:
 - Evite concatenar `String` com ternários encadeados em Swift: o compilador trava por muitos minutos.
 - SF Symbols dentro do `Text` da barra não aparecem; use o caractere ₿.
 
+## Docker e Umbrel
+
+- `Dockerfile` (python:3.13-slim) + `deploy/umbrel/iniciar.sh`: na 1ª vez copia o `config.example.toml` para `/data/config.toml`, depois roda `minerador --host 0.0.0.0` (só dentro da rede do Docker; no Umbrel quem chega é o `app_proxy`, que pede a senha do Umbrel; **nunca** publicar a porta 8080 na LAN).
+- `.github/workflows/imagem.yml` testa (amd64: `/api/health`) e publica `ghcr.io/marconecerqueira/painel-de-controle` (arm64 + amd64) a cada push no main que mexa no código.
+- O app do Umbrel vive em outro repositório: **marconecerqueira/umbrel-loja** (loja comunitária, app `marcone-painel`, porta 8095). O config.toml e o banco ficam em `~/umbrel/app-data/marcone-painel/data/`.
+
 ## Testes
 
 - Os testes de parser usam JSON fixo das APIs reais.
