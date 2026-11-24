@@ -25,10 +25,12 @@ jobs:
       - name: "Teste rápido (amd64): o contêiner sobe e responde"
         run: |
           docker build -t painel-teste .
-          docker run -d --name t -p 8080:8080 painel-teste
+          mkdir dados && sudo chown 1000:1000 dados          # como no Umbrel: usuário 1000 e pasta de dados de fora
+          docker run -d --name painel --user 1000:1000 -v "$PWD/dados:/data" -p 8080:8080 painel-teste
           for i in $(seq 1 30); do curl -fs http://127.0.0.1:8080/api/health && break; sleep 1; done
+          docker logs painel
           curl -fs http://127.0.0.1:8080/api/health
-          docker logs t
+          test -f dados/config.toml
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
