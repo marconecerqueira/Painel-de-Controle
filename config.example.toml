@@ -101,3 +101,14 @@ chat_id = ""
 # pool_min = 10
 # rental_min = 3
 # low_hashrate_pct = 70
+
+# ---------------------------------------------------------------- Leda (assistente de voz)
+# Botão "Leda" no painel: você pergunta (falando ou escrevendo) e ela responde com voz realista.
+# Cérebro e voz: API do Gemini. Chave grátis em https://aistudio.google.com/apikey (fica só aqui, no servidor).
+# Vai para o Google só a pergunta e um resumo do painel (máquinas, alertas, finanças), sem endereços nem IPs.
+# Vazio = Leda desligada (o botão some).
+[leda]
+api_key = ""
+# voice = "Leda"                       # outras: Laomedeia, Aoede, Sulafat, Achernar...
+# text_model = "gemini-flash-lite-latest"
+# tts_model = "gemini-3.8-flash-tts"

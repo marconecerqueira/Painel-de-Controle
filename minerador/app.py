@@ -9,7 +9,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .alerts import AlertEngine, TelegramNotifier
 from .blocks import BlockFeed
@@ -17,6 +17,7 @@ from .collector import Collector
 from .control import ControlError
 from .config import Config
 from .db import Database
+from .leda import Leda, LedaError
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -31,6 +32,10 @@ class ControlBody(BaseModel):
     value: str | dict | None = None   # perfil (LuxOS) ou {frequency, coreVoltage} (AxeOS)
 
 
+class LedaBody(BaseModel):
+    pergunta: str = Field(min_length=1, max_length=500)
+
+
 class EventBody(BaseModel):
     ts: float
     key: str
@@ -43,6 +48,7 @@ def create_app(cfg: Config, start_collector: bool = True) -> FastAPI:
                 if cfg.telegram_token else None)
     collector = Collector(cfg, db, AlertEngine(cfg.alerts, db, notifier))
     blocks = BlockFeed(cfg)
+    leda = Leda(**cfg.leda) if cfg.leda else None
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -168,6 +174,20 @@ def create_app(cfg: Config, start_collector: bool = True) -> FastAPI:
         _guard(request)
         await _engine().clear_events()
         return {"ok": True}
+
+    @app.get("/api/leda")
+    async def leda_info() -> dict:
+        return {"ativa": leda is not None}
+
+    @app.post("/api/leda")
+    async def leda_ask(body: LedaBody, request: Request) -> dict:
+        _guard(request)
+        if leda is None:
+            raise HTTPException(status_code=503, detail="A Leda ainda não tem chave: preencha [leda] api_key no config.toml.")
+        try:
+            return await leda.responder(body.pergunta.strip(), collector.snapshot())
+        except LedaError as e:
+            raise HTTPException(status_code=502, detail=str(e)) from None
 
     @app.get("/api/health")
     async def health() -> dict:

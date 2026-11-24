@@ -292,6 +292,22 @@
   .pill.sleeping { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
 
   /* ---------------- controle remoto (Fase 4) */
+  /* Leda: assistente de voz (botão flutuante + diálogo). Só aparece se o servidor tiver [leda] api_key. */
+  .leda-fab { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 40; display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 18px; border: 0; border-radius: 999px; cursor: pointer; font: 700 17px var(--cond); color: #04120b;
+    background: linear-gradient(135deg, #7df0a8, #3ee07a); box-shadow: 0 8px 24px rgba(0,0,0,.35), 0 0 18px rgba(62,224,122,.45); }
+  .leda-fab[hidden] { display: none; }
+  .leda-fab svg { width: 20px; height: 20px; }
+  .leda-fala { min-height: 64px; padding: 12px 14px; border-radius: 12px; background: var(--track); line-height: 1.45; white-space: pre-wrap; }
+  .leda-fala .q { color: var(--muted); font-size: 13px; display: block; margin-bottom: 6px; }
+  .leda-form { display: flex; gap: 8px; }
+  .leda-form input { flex: 1; min-width: 0; font: 16px var(--sans, inherit); padding: 10px 12px; border-radius: 10px; border: 1px solid var(--hair); background: var(--surface); color: var(--ink); }
+  .leda-form button { border: 0; border-radius: 10px; padding: 0 14px; font: 600 15px var(--cond); cursor: pointer; background: var(--track); color: var(--ink); }
+  .leda-form .enviar { background: #3ee07a; color: #04120b; }
+  .leda-mic[aria-pressed="true"] { background: #ff5a55; color: #fff; animation: leda-ouvindo 1s ease-in-out infinite alternate; }
+  @keyframes leda-ouvindo { to { opacity: .6; } }
+  html.leve .leda-mic { animation: none !important; }
+  @media (prefers-reduced-motion: reduce) { .leda-mic { animation: none !important; } }
   .ctl-open { border: 1px solid var(--hair); background: var(--surface); color: var(--ink-2); font: 500 13px var(--cond); padding: 3px 9px 3px 7px; border-radius: 999px;
     cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
   .ctl-open:hover { color: var(--ink); border-color: var(--muted); }
@@ -766,6 +782,20 @@
   </section>
 
 </main>
+
+<button class="leda-fab" id="leda-fab" type="button" hidden aria-label="Falar com a Leda, a assistente de voz">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Leda</button>
+<dialog class="ctl" id="leda-dlg" aria-labelledby="leda-tit">
+  <div class="ctl-head"><b id="leda-tit">Leda</b><button class="close" type="button" id="leda-fechar" aria-label="Fechar">×</button></div>
+  <div class="ctl-body">
+    <div class="leda-fala" id="leda-fala" aria-live="polite">Oi! Pergunte sobre as suas máquinas. Toque no microfone e fale, ou escreva.</div>
+    <form class="leda-form" id="leda-form">
+      <input id="leda-q" type="text" autocomplete="off" placeholder="Ex.: Como está a S19?" aria-label="Pergunta para a Leda" maxlength="500">
+      <button class="leda-mic" id="leda-mic" type="button" aria-pressed="false" aria-label="Falar (microfone)" hidden>🎤</button>
+      <button class="enviar" type="submit">Enviar</button>
+    </form>
+  </div>
+</dialog>
 
 <script>
 const REFRESH_MS = 10000;
@@ -2159,6 +2189,57 @@ document.getElementById("bpool").addEventListener("change", ev => setBlockView(e
 loadBlockPools().then(() => setBlockView(bview));
 let blockTick = 0;                    // a fila muda rápido: Rede a cada 20 s, os outros filtros a cada 1 min
 setInterval(() => { if (bview === "rede" || ++blockTick % 3 === 0) loadBlocks(); }, 20000);
+
+// ------------------------------------------------------------------ Leda (assistente de voz)
+// O navegador transcreve a fala (quando sabe), o servidor pergunta ao Gemini e devolve texto + voz (WAV).
+// No iPhone o som só toca se o elemento <audio> foi "destravado" num toque: por isso o silêncio no início.
+{
+  const fab = document.getElementById("leda-fab"), dlg = document.getElementById("leda-dlg");
+  const fala = document.getElementById("leda-fala"), q = document.getElementById("leda-q");
+  const mic = document.getElementById("leda-mic"), form = document.getElementById("leda-form");
+  const som = new Audio(), SILENCIO = "data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YSADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==";
+  const destravar = () => { som.src = SILENCIO; som.play().catch(() => {}); };
+  const Reconhecer = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let ouvindo = null, ocupada = false;
+
+  fetch("/api/leda").then(r => r.json()).then(d => { fab.hidden = !d.ativa; }).catch(() => {});
+  fab.addEventListener("click", () => { destravar(); dlg.showModal(); if (!Reconhecer) q.focus(); });
+  document.getElementById("leda-fechar").addEventListener("click", () => { som.pause(); dlg.close(); });
+  dlg.addEventListener("close", () => { if (ouvindo) ouvindo.abort(); som.pause(); });
+
+  async function perguntar(texto) {
+    if (!texto || ocupada) return;
+    ocupada = true;
+    fala.innerHTML = `<span class="q">Você: ${esc(texto)}</span>A Leda está pensando…`;
+    try {
+      const r = await fetch("/api/leda", { method: "POST", headers: { "Content-Type": "application/json", "X-Minerador": "1" },
+                                           body: JSON.stringify({ pergunta: texto }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.detail || `Erro ${r.status}`);
+      fala.innerHTML = `<span class="q">Você: ${esc(texto)}</span>${esc(d.texto)}`;
+      if (d.audio) { som.src = "data:audio/wav;base64," + d.audio; som.play().catch(() => {}); }
+    } catch (e) {
+      fala.innerHTML = `<span class="q">Você: ${esc(texto)}</span>${esc(e.message === "Failed to fetch" ? "Sem conexão com o painel." : e.message)}`;
+    } finally { ocupada = false; q.value = ""; }
+  }
+  form.addEventListener("submit", ev => { ev.preventDefault(); destravar(); perguntar(q.value.trim()); });
+
+  if (Reconhecer) {
+    mic.hidden = false;
+    mic.addEventListener("click", () => {
+      destravar();
+      if (ouvindo) { ouvindo.stop(); return; }
+      const rec = new Reconhecer();
+      rec.lang = "pt-BR"; rec.interimResults = true; rec.maxAlternatives = 1;
+      let final = "";
+      rec.onresult = ev => { final = [...ev.results].map(x => x[0].transcript).join(""); q.value = final; };
+      rec.onerror = ev => { if (ev.error === "not-allowed") fala.textContent = "O microfone foi bloqueado. Libere em Ajustes → Safari → Microfone, ou escreva a pergunta."; };
+      rec.onend = () => { ouvindo = null; mic.setAttribute("aria-pressed", "false"); if (final.trim()) perguntar(final.trim()); };
+      ouvindo = rec; mic.setAttribute("aria-pressed", "true"); fala.textContent = "Estou ouvindo…";
+      rec.start();
+    });
+  }
+}
 
 refresh();
 setInterval(refresh, REFRESH_MS);

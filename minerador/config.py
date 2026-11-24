@@ -66,6 +66,7 @@ class Config:
     block_pools: list[str] = field(default_factory=list)  # slugs extras no filtro "Minhas pools"
     energy_eur_kwh: float | None = None     # [finance]: tarifa de energia
     location: dict | None = None            # [location]: local fixo do cartão de tempo (senão, o do aparelho)
+    leda: dict | None = None                # [leda]: assistente de voz (Gemini); None = desligada
 
 
 def _positive(m: dict, key: str, mid: str, where: str | None = None) -> float | None:
@@ -206,6 +207,14 @@ def parse_config(raw: dict, base_dir: Path | None = None) -> Config:
 
     energy = _positive(raw.get("finance", {}), "energy_eur_kwh", "", "[finance]")
 
+    ld = raw.get("leda", {})
+    if not isinstance(ld, dict):
+        raise ConfigError("[leda] deve ser uma seção com api_key")
+    leda_key = str(ld.get("api_key") or "").strip()
+    leda = {"api_key": leda_key, "voice": str(ld.get("voice") or "Leda"),
+            "text_model": str(ld.get("text_model") or "gemini-flash-lite-latest"),
+            "tts_model": str(ld.get("tts_model") or "gemini-3.8-flash-tts")} if leda_key else None
+
     return Config(
         host=server.get("host", "127.0.0.1"),
         port=int(server.get("port", 8080)),
@@ -222,4 +231,5 @@ def parse_config(raw: dict, base_dir: Path | None = None) -> Config:
         block_pools=block_pools,
         energy_eur_kwh=energy,
         location=_location(raw),
+        leda=leda,
     )
