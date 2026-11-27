@@ -60,16 +60,23 @@ class Market:
             return hit[1]
         try:
             data = await fn()
-        except (httpx.HTTPError, ValueError, KeyError, TypeError, ZeroDivisionError) as e:
+        except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError, AttributeError,
+                ZeroDivisionError) as e:
             log.warning("cotação %s indisponível: %s", key, describe_error(e))
             return hit[1] if hit else None
         self._cache[key] = (time.time(), data)
         return data
 
+    @staticmethod
+    async def _get_json(client: httpx.AsyncClient, url: str):
+        resp = await client.get(url, timeout=15)
+        resp.raise_for_status()      # página de erro não pode virar "dados"
+        return resp.json()
+
     async def btc(self, client: httpx.AsyncClient) -> dict | None:
         async def fetch():
-            prices = (await client.get(f"{self.mempool_url}/api/v1/prices", timeout=15)).json()
-            blocks = (await client.get(f"{self.mempool_url}/api/v1/blocks", timeout=15)).json()
+            prices = await self._get_json(client, f"{self.mempool_url}/api/v1/prices")
+            blocks = await self._get_json(client, f"{self.mempool_url}/api/v1/blocks")
             rewards = [b["extras"]["reward"] / 1e8 for b in blocks if (b.get("extras") or {}).get("reward")]
             reward = sum(rewards) / len(rewards)
             diff = float(blocks[0]["difficulty"])
@@ -79,7 +86,7 @@ class Market:
 
     async def bch_hashcommander(self, client: httpx.AsyncClient, base_url: str) -> dict | None:
         async def fetch():
-            e = (await client.get(f"{base_url}/estado.json", timeout=15)).json()
+            e = await self._get_json(client, f"{base_url}/estado.json")
             return {"coin": "BCH", "price_eur": float(e["preco_bch_eur"]),
                     "difficulty": float(e["dificuldade_rede"]), "reward": float(e["recompensa_bch"]),
                     "fee_pct": float(parse_number(e.get("taxa_pct")) or 0),

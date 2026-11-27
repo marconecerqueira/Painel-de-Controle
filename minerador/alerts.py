@@ -314,12 +314,18 @@ class AlertEngine:
     async def ack(self, key: str | None = None, acked: bool = True) -> int:
         """Fecha (ou reabre) alertas no aviso do painel. key=None = todos."""
         n = 0
-        for st in self.active.values():
+        for st in list(self.active.values()):   # cópia: o laço de alertas pode apagar um alerta durante o await
             if (key is None or st.key == key) and st.notified and st.acked != acked:
                 st.acked = acked
                 await self._db("save_alert_state", st)
                 n += 1
         return n
+
+    def restart_waits(self, now: float) -> None:
+        """Recomeça a espera dos alertas que ainda não dispararam (usado depois que o Mac dorme)."""
+        for st in self.active.values():
+            if st.notified is None:
+                st.first_seen = now
 
     async def delete_event(self, ts: float, key: str, event: str) -> bool:
         before = len(self.recent)

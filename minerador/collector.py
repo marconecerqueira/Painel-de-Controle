@@ -14,7 +14,7 @@ from .alerts import AlertEngine
 from .db import Database
 from . import control as ctl
 from .finance import Market, compute_own, compute_rental
-from .models import LocalReading, PoolReading, PoolWorker
+from .models import LocalReading, PoolReading, PoolWorker, describe_error
 from .sources import axeos, defisurfers, hashcommander, luxos, parasite
 
 log = logging.getLogger("minerador.collector")
@@ -27,6 +27,7 @@ HISTORY_RANGES = {
     "30d": (30 * 86400, 4 * 3600, "1m"),
 }
 POOL_CHART_TTL_S = 300
+ALERT_GAP_S = 120                          # mais que isto entre duas avaliações = o painel ficou parado
 POOL_SIDE_TYPES = {"pool_only", "rental"}  # sem API local: tudo vem da pool
 
 
@@ -53,6 +54,7 @@ class Collector:
         # derrubar o status dos workers (evita alarmes falsos).
         self.pools_last_ok: dict[str, tuple[float, PoolReading]] = {}
         self._client: httpx.AsyncClient | None = None
+        self._last_alert_eval = 0.0     # quando os alertas foram avaliados pela última vez
         self._chart_cache: dict[tuple[str, str], tuple[float, list]] = {}
         self.market = Market(cfg.mempool_url)
         self.rentals: dict[str, dict] = {}                 # id da máquina -> resumo financeiro
@@ -83,12 +85,16 @@ class Collector:
     # ------------------------------------------------------------------ coleta
     async def _poll_miner(self, m: MinerConfig) -> None:
         assert self._client is not None
-        if m.type == "luxos":
-            reading = await luxos.fetch(m.host, m.port or 4028)
-        elif m.type == "axeos":
-            reading = await axeos.fetch(self._client, m.host, m.port or 80)
-        else:
-            return
+        try:
+            if m.type == "luxos":
+                reading = await luxos.fetch(m.host, m.port or 4028)
+            elif m.type == "axeos":
+                reading = await axeos.fetch(self._client, m.host, m.port or 80)
+            else:
+                return
+        except Exception as e:   # resposta fora do formato: sem isto a leitura velha ficaria "online" para sempre
+            log.exception("erro ao ler %s", m.id)
+            reading = LocalReading(online=False, error=f"resposta inesperada: {describe_error(e)}")
         ts = time.time()
         self.local[m.id] = (ts, reading)
         if self.db:
@@ -213,6 +219,12 @@ class Collector:
         # Só avalia com dados frescos de todas as fontes: evita "resolvido" falso logo após reiniciar.
         if self.alerts is None or not (self._local_ready and self._pools_ready):
             return
+        now = time.time()
+        if now - self._last_alert_eval > ALERT_GAP_S:
+            # O laço normal roda a cada 15 s. Um salto grande = o Mac dormiu: o relógio correu sem
+            # ninguém olhar, então a espera dos alertas recomeça (senão sai alarme falso ao acordar).
+            self.alerts.restart_waits(now)
+        self._last_alert_eval = now
         await self.alerts.evaluate(self.snapshot())
 
     @staticmethod
@@ -225,7 +237,10 @@ class Collector:
     async def _loop(self, fn, interval: float) -> None:
         while True:
             started = time.monotonic()
-            await fn()
+            try:
+                await fn()
+            except Exception:   # um erro numa rodada não pode parar o laço (o painel ficaria congelado)
+                log.exception("erro inesperado no laço de coleta")
             await asyncio.sleep(max(1.0, interval - (time.monotonic() - started)))
 
     async def _coin_market(self, pool_id: str | None, btc: dict | None) -> dict | None:
