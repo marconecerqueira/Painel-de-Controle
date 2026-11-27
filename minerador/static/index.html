@@ -1425,12 +1425,15 @@ function drawChart() {
   const W = Math.max(280, el.clientWidth), H = W < 560 ? 120 : 150;
   const n = bs.length, step = W / n, gap = step > 4 ? 2 : step > 2 ? 1 : 0, bw = Math.max(1, step - gap), rx = Math.min(3, bw / 2);
   const yMax = Math.max(0, ...withData.map(o => o.total)) * 1.05 || 1;
-  let g = `<defs><linearGradient id="hbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--s3)"/><stop offset="1" style="stop-color:var(--s3);stop-opacity:.35"/></linearGradient>
-    <linearGradient id="hbn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--s2)"/><stop offset="1" style="stop-color:var(--s2);stop-opacity:.45"/></linearGradient></defs>`;
+  // gradiente com stop-color:var() não preenchia as barras (fill transparente);
+  // cores sólidas dos tokens CSS resolvem em todos os temas.
+  let g = "";
   bs.forEach((o, i) => {
-    const h = o.total == null ? 3 : Math.max(3, o.total / yMax * H);   // intervalo sem leitura = toco baixinho
+    const h = o.total == null ? 10 : Math.max(3, o.total / yMax * H); // intervalo sem leitura = barra baixa visível
+    // barras sem leitura: cor distinta do fundo (--muted em vez de --track)
+    const fill = i === nowIdx ? "var(--s2)" : o.total == null ? "var(--muted)" : "var(--s3)";
     g += `<rect class="bar" data-i="${i}" x="${(i * step).toFixed(2)}" y="${(H - h).toFixed(2)}" width="${bw.toFixed(2)}" height="${h.toFixed(2)}" rx="${rx}"
-      fill="${i === nowIdx ? "url(#hbn)" : o.total == null ? "var(--track)" : "url(#hbg)"}"/>`;
+      fill="${fill}"/>`;
   });
   el.querySelectorAll("svg").forEach(x => x.remove());
   el.insertAdjacentHTML("afterbegin", `<svg viewBox="0 0 ${W} ${H}" height="${H}" aria-hidden="true">${g}</svg>`);
